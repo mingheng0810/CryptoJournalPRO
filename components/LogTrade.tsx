@@ -41,16 +41,14 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const prevExitRef = useRef(exit);
   const symbolRef = useRef<HTMLDivElement>(null);
 
-  // Auto-set Close Time when Exit Price is filled (sync with input time)
+  // Auto-set Close Time when Exit Price is filled
   useEffect(() => {
     if (exit && !prevExitRef.current && !closeTimestamp) {
       setCloseTimestamp(new Date().toISOString().slice(0, 16));
     }
-    // Update local ref to track changes
     prevExitRef.current = exit;
   }, [exit, closeTimestamp]);
 
-  // Handle click outside for symbol search
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (symbolRef.current && !symbolRef.current.contains(e.target as Node)) {
@@ -308,23 +306,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            <input type="number" step="any" placeholder="Principal (Margin)" value={marginInput} onChange={e => setMarginInput(e.target.value)} className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-5 font-mono text-white text-xl focus:border-[#00FFFF] outline-none transition-all shadow-inner" />
         </div>
 
-        {(tpPreview || slPreview) && (
-          <div className="relative z-10 animate-in slide-in-from-left-2 fade-in duration-300">
-            <div className="bg-white border border-zinc-200 rounded-lg p-2.5 shadow-2xl flex flex-col gap-1.5 w-max min-w-[220px] mb-2 transform rotate-[-0.5deg]">
-               {tpPreview && (
-                 <div className="text-[10px] font-black text-emerald-600 flex justify-between gap-4">
-                    <span>買入 收益 ≈ +{tpPreview.amt.toFixed(4)} (+{tpPreview.pct.toFixed(2)}%)</span>
-                 </div>
-               )}
-               {slPreview && (
-                 <div className="text-[10px] font-black text-red-600 flex justify-between gap-4">
-                    <span>賣出 收益 ≈ {slPreview.amt.toFixed(4)} ({slPreview.pct.toFixed(2)}%)</span>
-                 </div>
-               )}
-            </div>
-          </div>
-        )}
-
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-500 uppercase">{t.entry}</label>
@@ -399,3 +380,4 @@ const CalcResult: React.FC<{ label: string; value: string; color: string }> = ({
 );
 
 export default LogTrade;
+
