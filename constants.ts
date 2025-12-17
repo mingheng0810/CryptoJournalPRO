@@ -54,7 +54,7 @@ export const TRANSLATIONS = {
     language: '語言',
     pnl: '預計盈虧',
     pnlPercent: '盈虧%',
-    calculator: '艙位計算機',
+    calculator: '倉位計算機',
     riskPercent: '允許虧損比',
     suggestedMargin: '合理保證金',
     suggestedLev: '建議槓桿',
@@ -62,7 +62,7 @@ export const TRANSLATIONS = {
     totalAsset: '總資產估值',
     riskAmt: '允許虧損金額',
     slPct: '止損幅度',
-    posValue: '合理艙位價值',
+    posValue: '合理倉位價值',
     review: '心得/筆記',
     fromDate: '自',
     toDate: '至',
@@ -120,3 +120,4 @@ export const TRANSLATIONS = {
     searchSymbol: 'Search or enter symbol...'
   }
 };
+
