@@ -1,0 +1,7 @@
+{
+  "name": "CryptoJournal Pro",
+  "description": "A professional-grade cryptocurrency trading journal with dark mode UI, automated PNL calculations, equity curve visualization, and Gemini AI-powered trade psychological feedback.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

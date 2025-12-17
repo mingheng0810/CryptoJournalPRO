@@ -1,0 +1,122 @@
+
+export const INITIAL_SYMBOLS = [
+  'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ORDIUSDT', '1000SATSUSDT', 'TIAUSDT', 'SEIUSDT',
+  'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT', 'MATICUSDT',
+  'XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'NQ1!', 'ES1!', 'US30'
+];
+export const INITIAL_STRATEGIES = ['ATM Model', 'Silver Bullet', 'Break & Retest', 'SMC', 'Trend Following'];
+export const INITIAL_ACCOUNTS = [
+  { id: 'default', name: 'Main Account', initialBalance: 0, currentBalance: 0 }
+];
+
+export const REVIEW_TEMPLATE = `開單原因 : 
+實際發展 : 
+關單檢討 : `;
+
+export const THEME_COLORS = {
+  cyan: '#00FFFF',
+  purple: '#A855F7',
+  gold: '#FACC15',
+  win: '#10B981',
+  loss: '#EF4444',
+  bg: '#000000',
+  card: '#0A0A0A',
+  border: '#1A1A1A'
+};
+
+export const TRANSLATIONS = {
+  zh: {
+    log: '開倉',
+    history: '歷史',
+    metrics: '統計',
+    settings: '設定',
+    account: '帳戶',
+    symbol: '交易對',
+    entryTime: '進場時間',
+    closeTime: '平倉時間',
+    duration: '持倉時間',
+    direction: '方向',
+    leverage: '槓桿',
+    entry: '進場價',
+    exit: '平倉價',
+    sl: '止損',
+    tp: '止盈',
+    strategy: '策略',
+    positionSize: '倉位大小',
+    margin: '本金 (USDT)',
+    tokens: '顆數',
+    submit: '提交開倉',
+    update: '更新/關倉',
+    winRate: '勝率',
+    totalTrades: '總交易次數',
+    dailyPnl: '每日盈虧',
+    equityCurve: '權益曲線',
+    language: '語言',
+    pnl: '預計盈虧',
+    pnlPercent: '盈虧%',
+    calculator: '艙位計算機',
+    riskPercent: '允許虧損比',
+    suggestedMargin: '合理保證金',
+    suggestedLev: '建議槓桿',
+    detail: '詳細資訊',
+    totalAsset: '總資產估值',
+    riskAmt: '允許虧損金額',
+    slPct: '止損幅度',
+    posValue: '合理艙位價值',
+    review: '心得/筆記',
+    fromDate: '自',
+    toDate: '至',
+    allTime: '至今為止',
+    customRange: '自定義區間',
+    estPnl: '預期盈虧',
+    initialBalance: '初始本金',
+    searchSymbol: '搜尋或輸入交易對...'
+  },
+  en: {
+    log: 'Open',
+    history: 'Archive',
+    metrics: 'Metrics',
+    settings: 'Settings',
+    account: 'Account',
+    symbol: 'Symbol',
+    entryTime: 'Entry Time',
+    closeTime: 'Close Time',
+    duration: 'Duration',
+    direction: 'Direction',
+    leverage: 'Leverage',
+    entry: 'Entry Price',
+    exit: 'Exit Price',
+    sl: 'Stop Loss',
+    tp: 'Take Profit',
+    strategy: 'Strategy',
+    positionSize: 'Position Size',
+    margin: 'Margin (USDT)',
+    tokens: 'Tokens',
+    submit: 'Open Position',
+    update: 'Close/Update',
+    winRate: 'Win Rate',
+    totalTrades: 'Total Trades',
+    dailyPnl: 'Daily PNL',
+    equityCurve: 'Equity Curve',
+    language: 'Language',
+    pnl: 'Est. PNL',
+    pnlPercent: 'PNL %',
+    calculator: 'Position Calc',
+    riskPercent: 'Risk Ratio',
+    suggestedMargin: 'Reasonable Margin',
+    suggestedLev: 'Suggested Lev',
+    detail: 'Details',
+    totalAsset: 'Total Asset Valuation',
+    riskAmt: 'Risk Amount',
+    slPct: 'SL Magnitude',
+    posValue: 'Reasonable Pos Value',
+    review: 'Review/Notes',
+    fromDate: 'From',
+    toDate: 'To',
+    allTime: 'All Time',
+    customRange: 'Custom',
+    estPnl: 'Est. PNL',
+    initialBalance: 'Initial Balance',
+    searchSymbol: 'Search or enter symbol...'
+  }
+};
