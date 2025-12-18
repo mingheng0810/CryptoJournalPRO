@@ -26,9 +26,40 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
     return `${minutes}m`;
   };
 
-  const handleGoToClose = (trade: Trade) => {
-    // 切換狀態為 Closed 並跳轉至編輯頁面
-    onEditTrade({ ...trade, status: 'Closed' });
+  const handleQuickClose = (trade: Trade) => {
+    const exitPriceStr = window.prompt(`[快速平倉] 請輸入 ${trade.symbol} 的平倉價格:`, trade.entry.toString());
+    if (exitPriceStr === null) return;
+    
+    const exitPrice = parseFloat(exitPriceStr);
+    if (isNaN(exitPrice)) {
+      alert('請輸入有效的數字');
+      return;
+    }
+
+    const diff = trade.direction === 'Long' ? (exitPrice - trade.entry) : (trade.entry - exitPrice);
+    let pnlPercentage = 0;
+    let pnlAmount = 0;
+
+    if (trade.positionUnit === 'Margin') {
+      pnlPercentage = (diff / trade.entry) * trade.leverage * 100;
+      pnlAmount = trade.positionSize * (pnlPercentage / 100);
+    } else {
+      pnlAmount = diff * trade.positionSize;
+      const estimatedMargin = (trade.positionSize * trade.entry) / trade.leverage;
+      pnlPercentage = (pnlAmount / estimatedMargin) * 100;
+    }
+
+    const updatedTrade: Trade = {
+      ...trade,
+      status: 'Closed',
+      exit: exitPrice,
+      closeTimestamp: new Date().toISOString(),
+      pnlPercentage,
+      pnlAmount
+    };
+
+    onUpdateTrade(updatedTrade);
+    alert('平倉成功！資產已結算至帳戶。');
   };
 
   const handleAIFeedback = async (trade: Trade) => {
@@ -97,7 +128,7 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                   <DataBlock label="Entry" value={trade.entry.toLocaleString()} />
                   <DataBlock label="Exit" value={trade.exit?.toLocaleString() || '---'} />
                   <DataBlock label="PNL (USDT)" value={trade.pnlAmount.toFixed(2)} color={trade.pnlAmount >= 0 ? "text-emerald-400" : "text-red-400"} />
-                  <DataBlock label="Duration" value={calculateDuration(trade.timestamp, trade.closeTimestamp)} />
+                  <DataBlock label={trade.positionUnit === 'Margin' ? "Margin" : "Tokens"} value={`${trade.positionSize} ${trade.positionUnit === 'Margin' ? 'USDT' : 'Tokens'}`} />
                 </div>
 
                 {trade.snapshot && (
@@ -125,10 +156,10 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                 <div className="flex flex-col gap-3">
                   {trade.status === 'Active' && (
                     <button 
-                      onClick={() => handleGoToClose(trade)}
+                      onClick={() => handleQuickClose(trade)}
                       className="w-full py-4 bg-[#00FFFF] text-black rounded-xl text-[12px] font-[900] uppercase tracking-widest shadow-[0_10px_30px_rgba(0,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
-                      Close Position & Settle ⚡️
+                      Quick Close Position ⚡️
                     </button>
                   )}
                   

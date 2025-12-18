@@ -22,13 +22,13 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const [entry, setEntry] = useState(editingTrade?.entry?.toString() || '');
   const [exit, setExit] = useState(editingTrade?.exit?.toString() || '');
   const [sl, setSl] = useState(editingTrade?.sl?.toString() || '');
-  const [marginInput, setMarginInput] = useState(editingTrade?.positionSize?.toString() || '');
+  const [posInput, setPosInput] = useState(editingTrade?.positionSize?.toString() || '');
+  const [posUnit, setPosUnit] = useState<'Margin' | 'Tokens'>(editingTrade?.positionUnit || 'Margin');
   const [status, setStatus] = useState<'Active' | 'Closed'>(editingTrade?.status || 'Active');
   const [review, setReview] = useState(editingTrade?.review || REVIEW_TEMPLATE);
   const [snapshot, setSnapshot] = useState<string | undefined>(editingTrade?.snapshot);
   const [timestamp] = useState(editingTrade?.timestamp || new Date().toISOString());
 
-  // 如果是從歷史紀錄跳過來的編輯，偵測其狀態
   useEffect(() => {
     if (editingTrade) {
         setAccountId(editingTrade.accountId);
@@ -37,7 +37,8 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         setLeverage(editingTrade.leverage);
         setEntry(editingTrade.entry.toString());
         setSl(editingTrade.sl.toString());
-        setMarginInput(editingTrade.positionSize.toString());
+        setPosInput(editingTrade.positionSize.toString());
+        setPosUnit(editingTrade.positionUnit);
         setStatus(editingTrade.status);
         setReview(editingTrade.review);
         setSnapshot(editingTrade.snapshot);
@@ -45,23 +46,30 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
     }
   }, [editingTrade]);
 
-  const [riskPercent, setRiskPercent] = useState<string>('2');
-  const [showCalculator, setShowCalculator] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const currentAccount = useMemo(() => accounts.find(a => a.id === accountId) || accounts[0], [accounts, accountId]);
 
   // 盈虧預覽計算
   const pnlPreview = useMemo(() => {
     const entryPrice = parseFloat(entry);
     const exitPrice = parseFloat(exit);
-    const posSize = parseFloat(marginInput);
-    if (!entryPrice || !exitPrice || !posSize) return null;
+    const amount = parseFloat(posInput);
+    if (!entryPrice || !exitPrice || !amount) return null;
 
     const diff = direction === 'Long' ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
-    const pnlPct = (diff / entryPrice) * leverage * 100;
-    const pnlAmt = posSize * (pnlPct / 100);
+    let pnlPct = 0;
+    let pnlAmt = 0;
+
+    if (posUnit === 'Margin') {
+      pnlPct = (diff / entryPrice) * leverage * 100;
+      pnlAmt = amount * (pnlPct / 100);
+    } else {
+      pnlAmt = diff * amount;
+      // 換算成對應槓桿下的本金百分比
+      const estimatedMargin = (amount * entryPrice) / leverage;
+      pnlPct = (pnlAmt / estimatedMargin) * 100;
+    }
     return { pnlPct, pnlAmt };
-  }, [entry, exit, direction, leverage, marginInput]);
+  }, [entry, exit, direction, leverage, posInput, posUnit]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -79,12 +87,18 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
     let pnlAmount = 0;
     const entryPrice = parseFloat(entry) || 0;
     const exitPrice = parseFloat(exit) || 0;
-    const posSize = parseFloat(marginInput) || 0;
+    const amount = parseFloat(posInput) || 0;
 
     if (status === 'Closed' && entryPrice && exitPrice) {
         const diff = direction === 'Long' ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
-        pnlPercentage = (diff / entryPrice) * leverage * 100;
-        pnlAmount = posSize * (pnlPercentage / 100);
+        if (posUnit === 'Margin') {
+          pnlPercentage = (diff / entryPrice) * leverage * 100;
+          pnlAmount = amount * (pnlPercentage / 100);
+        } else {
+          pnlAmount = diff * amount;
+          const estimatedMargin = (amount * entryPrice) / leverage;
+          pnlPercentage = (pnlAmount / estimatedMargin) * 100;
+        }
     }
 
     const trade: Trade = {
@@ -104,8 +118,8 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
       snapshot,
       strategy: editingTrade?.strategy || strategies[0]?.name || '',
       accountId,
-      positionSize: posSize,
-      positionUnit: 'Margin',
+      positionSize: amount,
+      positionUnit: posUnit,
       status,
       aiFeedback: editingTrade?.aiFeedback
     };
@@ -156,13 +170,23 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
           </div>
         </div>
 
-        <div className={`grid grid-cols-1 gap-5 ${status === 'Closed' ? 'md:grid-cols-4' : 'md:grid-cols-3'}`}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
            <InputGroup label={t.entry} value={entry} onChange={setEntry} type="number" />
            {status === 'Closed' && (
              <InputGroup label={t.exit} value={exit} onChange={setExit} type="number" highlight />
            )}
            <InputGroup label={t.sl} value={sl} onChange={setSl} type="number" />
-           <InputGroup label={t.margin} value={marginInput} onChange={setMarginInput} type="number" />
+           
+           <div className="space-y-2">
+              <div className="flex justify-between items-center px-1">
+                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{posUnit === 'Margin' ? t.margin : t.tokens}</label>
+                <div className="flex bg-zinc-900 p-0.5 rounded-lg border border-zinc-800">
+                   <button type="button" onClick={() => setPosUnit('Margin')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-all ${posUnit === 'Margin' ? 'bg-[#00FFFF] text-black' : 'text-zinc-500'}`}>$</button>
+                   <button type="button" onClick={() => setPosUnit('Tokens')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-all ${posUnit === 'Tokens' ? 'bg-[#00FFFF] text-black' : 'text-zinc-500'}`}>🪙</button>
+                </div>
+              </div>
+              <input type="number" value={posInput} onChange={e => setPosInput(e.target.value)} className="w-full bg-zinc-950 border border-zinc-900 rounded-2xl px-6 py-5 text-sm font-sans outline-none focus:border-zinc-700 transition-all" />
+           </div>
         </div>
 
         {status === 'Closed' && pnlPreview && (
