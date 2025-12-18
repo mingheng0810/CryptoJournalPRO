@@ -1,15 +1,15 @@
-
 import React, { useMemo, useState } from 'react';
 import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
 import { Trade, Language, Account } from '../types';
-import { THEME_COLORS, TRANSLATIONS, INITIAL_ACCOUNTS } from '../constants';
+import { THEME_COLORS, TRANSLATIONS } from '../constants';
 
 interface StatisticsProps {
   trades: Trade[];
+  accounts: Account[];
   lang: Language;
 }
 
-const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
+const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
   const t = TRANSLATIONS[lang];
   const [showValue, setShowValue] = useState(true);
   const [fromDate, setFromDate] = useState<string>('');
@@ -17,8 +17,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
   const [activeQuickRange, setActiveQuickRange] = useState<string>('All');
 
   const { stats, equityCurve, fullPeriodBalance } = useMemo(() => {
-    const storedAccs = localStorage.getItem('crypto_journal_accounts_v4');
-    const account: Account = storedAccs ? JSON.parse(storedAccs)[0] : INITIAL_ACCOUNTS[0];
+    const account: Account = accounts[0];
     const initialBalance = account?.initialBalance || 0;
 
     const sortedTrades = [...trades].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
@@ -39,6 +38,16 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
 
     let currentCurveBalance = initialBalance;
     const curve = [{ date: 'Start', value: initialBalance }];
+    
+    // 如果有篩選日期，且起始日期不是第一筆交易，則需要計算起始之前的 PNL 作為 curve 的起點
+    if (fromDate) {
+        const priorTrades = sortedTrades.filter(t => new Date(t.timestamp).toISOString().split('T')[0] < fromDate);
+        priorTrades.forEach(pt => {
+            if (pt.status === 'Closed') currentCurveBalance += pt.pnlAmount;
+        });
+        curve[0] = { date: 'Start Range', value: currentCurveBalance };
+    }
+
     filteredTrades.forEach(trade => {
       if (trade.status === 'Closed') {
         currentCurveBalance += trade.pnlAmount;
@@ -56,7 +65,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
       equityCurve: curve,
       fullPeriodBalance: initialBalance + totalRealizedPnl
     };
-  }, [trades, fromDate, toDate]);
+  }, [trades, accounts, fromDate, toDate]);
 
   const handleQuickRange = (days: number | 'All') => {
     setActiveQuickRange(days === 'All' ? 'All' : days.toString());
@@ -73,7 +82,6 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
 
   return (
     <div className="px-6 py-8 space-y-10 max-w-4xl mx-auto pb-40 animate-in fade-in duration-700">
-      {/* Total Asset Valuation - Exact match to Screenshot */}
       <section className="text-center space-y-6">
         <div className="flex items-center justify-center gap-2 text-zinc-500 text-[10px] font-black uppercase tracking-[0.2em]">
           <span>總資產估值 (REALIZED)</span>
@@ -93,8 +101,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
         </div>
       </section>
 
-      {/* Quick Range Selector - Exact style from Screenshot */}
-      <section className="flex justify-center bg-zinc-950/40 p-1.5 rounded-2xl border border-zinc-900/50 w-fit mx-auto gap-1">
+      <section className="flex flex-wrap justify-center bg-zinc-950/40 p-1.5 rounded-2xl border border-zinc-900/50 w-fit mx-auto gap-1">
          {[
            { label: '7日', val: 7 },
            { label: '30日', val: 30 },
@@ -112,29 +119,21 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
          ))}
       </section>
 
-      {/* Date Range Picker - Exact match to Screenshot */}
       <section className="bg-zinc-900/10 border border-zinc-900/60 rounded-[2.5rem] p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
          <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-700 uppercase tracking-widest ml-1">自</label>
             <div className="relative group">
               <input type="date" value={fromDate} onChange={e => {setFromDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
-              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-700 group-focus-within:text-[#00FFFF]">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/></svg>
-              </div>
             </div>
          </div>
          <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-700 uppercase tracking-widest ml-1">至</label>
             <div className="relative group">
               <input type="date" value={toDate} onChange={e => {setToDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
-              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-700 group-focus-within:text-[#00FFFF]">
-                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd"/></svg>
-              </div>
             </div>
          </div>
       </section>
 
-      {/* Chart Section */}
       <section className="h-72 relative bg-zinc-950/20 rounded-[3rem] border border-zinc-900/50 overflow-hidden">
          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.05) 0%, transparent 100%)' }}></div>
          <ResponsiveContainer width="100%" height="100%">
@@ -150,7 +149,6 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, lang }) => {
          </ResponsiveContainer>
       </section>
 
-      {/* Metrics Cards */}
       <div className="grid grid-cols-2 gap-4">
         <MetricBox label="勝率" value={`${stats.winRate.toFixed(1)}%`} color="text-emerald-400" />
         <MetricBox label="總執行次數" value={stats.total.toString()} />
@@ -167,4 +165,3 @@ const MetricBox: React.FC<{ label: string; value: string; color?: string }> = ({
 );
 
 export default Statistics;
-

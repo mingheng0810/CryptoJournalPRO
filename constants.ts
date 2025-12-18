@@ -120,4 +120,3 @@ export const TRANSLATIONS = {
     searchSymbol: 'Search or enter symbol...'
   }
 };
-

@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Trade } from '../types';
 import { TRANSLATIONS } from '../constants';
@@ -8,9 +7,10 @@ interface TradeHistoryProps {
   trades: Trade[];
   onUpdateTrade: (updatedTrade: Trade) => void;
   onEditTrade: (trade: Trade) => void;
+  onDeleteTrade: (id: string) => void;
 }
 
-const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEditTrade }) => {
+const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEditTrade, onDeleteTrade }) => {
   const [loadingAI, setLoadingAI] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -24,6 +24,11 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
     if (days > 0) return `${days}d ${hours % 24}h`;
     if (hours > 0) return `${hours}h ${minutes % 60}m`;
     return `${minutes}m`;
+  };
+
+  const handleGoToClose = (trade: Trade) => {
+    // 切換狀態為 Closed 並跳轉至編輯頁面
+    onEditTrade({ ...trade, status: 'Closed' });
   };
 
   const handleAIFeedback = async (trade: Trade) => {
@@ -53,7 +58,6 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
             key={trade.id} 
             className={`bg-[#0A0A0A] border ${trade.status === 'Active' ? 'border-[#00FFFF]/30 shadow-[0_0_20px_rgba(0,255,255,0.05)]' : 'border-[#1A1A1A]'} rounded-[1.5rem] overflow-hidden transition-all duration-300 ${isExpanded ? 'ring-1 ring-[#00FFFF]/20' : 'hover:border-zinc-700'}`}
           >
-            {/* Header / Minimal View */}
             <div 
               onClick={() => setExpandedId(isExpanded ? null : trade.id)}
               className="p-5 flex justify-between items-center cursor-pointer select-none"
@@ -87,7 +91,6 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
               </div>
             </div>
 
-            {/* Detailed View (Collapsible) */}
             {isExpanded && (
               <div className="px-5 pb-5 pt-2 space-y-6 border-t border-[#1A1A1A]/50 animate-in slide-in-from-top-2 duration-300">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -98,7 +101,7 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                 </div>
 
                 {trade.snapshot && (
-                   <div className="rounded-2xl overflow-hidden border border-zinc-800">
+                   <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-inner">
                       <img src={trade.snapshot} className="w-full h-auto max-h-64 object-contain bg-black" alt="Snapshot" />
                    </div>
                 )}
@@ -119,20 +122,37 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                   </div>
                 )}
 
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => onEditTrade(trade)} 
-                    className="flex-1 py-3 bg-[#1A1A1A] text-zinc-400 rounded-xl text-[10px] font-black uppercase hover:bg-[#00FFFF]/10 hover:text-[#00FFFF] transition-all border border-transparent hover:border-[#00FFFF]/20"
-                  >
-                    Edit Log
-                  </button>
-                  <button 
-                    onClick={() => handleAIFeedback(trade)}
-                    disabled={loadingAI === trade.id || !!trade.aiFeedback}
-                    className="flex-1 py-3 bg-[#1A1A1A] text-zinc-400 rounded-xl text-[10px] font-black uppercase disabled:opacity-50 transition-all hover:bg-zinc-800"
-                  >
-                    {loadingAI === trade.id ? 'Analyzing...' : trade.aiFeedback ? 'Reviewed' : 'AI Analysis'}
-                  </button>
+                <div className="flex flex-col gap-3">
+                  {trade.status === 'Active' && (
+                    <button 
+                      onClick={() => handleGoToClose(trade)}
+                      className="w-full py-4 bg-[#00FFFF] text-black rounded-xl text-[12px] font-[900] uppercase tracking-widest shadow-[0_10px_30px_rgba(0,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+                    >
+                      Close Position & Settle ⚡️
+                    </button>
+                  )}
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      onClick={() => onEditTrade(trade)} 
+                      className="flex-1 min-w-[100px] py-3 bg-[#1A1A1A] text-zinc-400 rounded-xl text-[10px] font-black uppercase hover:bg-[#00FFFF]/10 hover:text-[#00FFFF] transition-all border border-transparent hover:border-[#00FFFF]/20"
+                    >
+                      Edit Detail
+                    </button>
+                    <button 
+                      onClick={() => handleAIFeedback(trade)}
+                      disabled={loadingAI === trade.id || !!trade.aiFeedback}
+                      className="flex-1 min-w-[100px] py-3 bg-[#1A1A1A] text-zinc-400 rounded-xl text-[10px] font-black uppercase disabled:opacity-50 transition-all hover:bg-zinc-800"
+                    >
+                      {loadingAI === trade.id ? 'Analyzing...' : trade.aiFeedback ? 'Reviewed' : 'AI Analysis'}
+                    </button>
+                    <button 
+                      onClick={() => onDeleteTrade(trade.id)}
+                      className="px-4 py-3 bg-red-950/20 text-red-500/50 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all border border-red-900/20"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

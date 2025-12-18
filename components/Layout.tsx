@@ -11,29 +11,33 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang }) => {
   const t = TRANSLATIONS[lang];
+  // 嚴格對齊用戶要求
   const MH_LOGO_PATH = "/logo.JPG";
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white font-sans selection:bg-[#00FFFF] selection:text-black">
       <header className="px-6 py-8 flex items-center gap-5 max-w-4xl mx-auto w-full">
-        <div className="w-14 h-14 border border-zinc-800 flex items-center justify-center bg-zinc-950 rounded-lg overflow-hidden shrink-0">
+        {/* Logo 容器 - 增加細微邊框與黑色底色 */}
+        <div className="w-14 h-14 border border-zinc-800 flex items-center justify-center bg-black rounded-lg overflow-hidden shrink-0 shadow-lg">
           <img 
             src={MH_LOGO_PATH} 
-            alt="MH" 
+            alt="MH Logo" 
             className="w-full h-full object-cover"
             onError={(e) => {
               const target = e.currentTarget;
               target.style.display = 'none';
               const parent = target.parentElement;
               if (parent) {
-                parent.innerHTML = '<div class="text-lg font-black tracking-tighter">MH</div>';
+                parent.innerHTML = '<div class="text-lg font-black tracking-tighter text-[#00FFFF]">MH</div>';
               }
             }}
           />
         </div>
 
+        {/* 垂直分割線 */}
         <div className="w-[1px] h-10 bg-zinc-800 shrink-0"></div>
 
+        {/* 標題區塊 */}
         <div className="space-y-0.5 overflow-hidden">
           <h1 className="text-lg font-black tracking-tight uppercase flex items-center gap-1.5 whitespace-nowrap">
             MH <span className="text-[#00FFFF]">TRADING</span> JOURNAL PRO
@@ -48,6 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
         {children}
       </main>
 
+      {/* 底部導覽列 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-zinc-900/50 px-8 pt-4 pb-10 z-50">
         <div className="max-w-md mx-auto flex justify-between">
           <NavButton active={activeTab === 'log'} onClick={() => setActiveTab('log')} label={t.log} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>} />
