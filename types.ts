@@ -1,4 +1,3 @@
-
 export type TradeDirection = 'Long' | 'Short';
 export type Language = 'zh' | 'en';
 export type TradeStatus = 'Active' | 'Closed';
@@ -18,6 +17,7 @@ export interface Trade {
   leverage: number;
   entry: number;
   exit?: number;
+  plannedTp?: number; // 新增：開單前的預設止盈
   sl: number;
   tps: TakeProfit[];
   pnlPercentage: number;

@@ -126,9 +126,15 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
               <div className="px-5 pb-5 pt-2 space-y-6 border-t border-[#1A1A1A]/50 animate-in slide-in-from-top-2 duration-300">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <DataBlock label="Entry" value={trade.entry.toLocaleString()} />
+                  <DataBlock label="Planned TP" value={trade.plannedTp?.toLocaleString() || '---'} color="text-amber-400" />
                   <DataBlock label="Exit" value={trade.exit?.toLocaleString() || '---'} />
                   <DataBlock label="PNL (USDT)" value={trade.pnlAmount.toFixed(2)} color={trade.pnlAmount >= 0 ? "text-emerald-400" : "text-red-400"} />
-                  <DataBlock label={trade.positionUnit === 'Margin' ? "Margin" : "Tokens"} value={`${trade.positionSize} ${trade.positionUnit === 'Margin' ? 'USDT' : 'Tokens'}`} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                   <DataBlock label="SL" value={trade.sl.toLocaleString()} color="text-red-400" />
+                   <DataBlock label={trade.positionUnit === 'Margin' ? "Margin" : "Tokens"} value={`${trade.positionSize} ${trade.positionUnit === 'Margin' ? 'USDT' : 'Tokens'}`} />
+                   <DataBlock label="Duration" value={calculateDuration(trade.timestamp, trade.closeTimestamp)} />
                 </div>
 
                 {trade.snapshot && (

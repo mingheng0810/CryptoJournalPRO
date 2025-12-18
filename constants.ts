@@ -1,4 +1,3 @@
-
 export const INITIAL_SYMBOLS = [
   'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ORDIUSDT', '1000SATSUSDT', 'TIAUSDT', 'SEIUSDT',
   'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT', 'MATICUSDT',
@@ -39,6 +38,7 @@ export const TRANSLATIONS = {
     leverage: '槓桿',
     entry: '進場價',
     exit: '平倉價',
+    plannedTp: '預設止盈',
     sl: '止損',
     tp: '止盈',
     strategy: '策略',
@@ -86,6 +86,7 @@ export const TRANSLATIONS = {
     leverage: 'Leverage',
     entry: 'Entry Price',
     exit: 'Exit Price',
+    plannedTp: 'Planned TP',
     sl: 'Stop Loss',
     tp: 'Take Profit',
     strategy: 'Strategy',

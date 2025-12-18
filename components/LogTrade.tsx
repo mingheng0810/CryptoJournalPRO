@@ -21,6 +21,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const [leverage, setLeverage] = useState(editingTrade?.leverage || 20);
   const [entry, setEntry] = useState(editingTrade?.entry?.toString() || '');
   const [exit, setExit] = useState(editingTrade?.exit?.toString() || '');
+  const [plannedTp, setPlannedTp] = useState(editingTrade?.plannedTp?.toString() || '');
   const [sl, setSl] = useState(editingTrade?.sl?.toString() || '');
   const [posInput, setPosInput] = useState(editingTrade?.positionSize?.toString() || '');
   const [posUnit, setPosUnit] = useState<'Margin' | 'Tokens'>(editingTrade?.positionUnit || 'Margin');
@@ -36,6 +37,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         setDirection(editingTrade.direction);
         setLeverage(editingTrade.leverage);
         setEntry(editingTrade.entry.toString());
+        setPlannedTp(editingTrade.plannedTp?.toString() || '');
         setSl(editingTrade.sl.toString());
         setPosInput(editingTrade.positionSize.toString());
         setPosUnit(editingTrade.positionUnit);
@@ -64,7 +66,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
       pnlAmt = amount * (pnlPct / 100);
     } else {
       pnlAmt = diff * amount;
-      // 換算成對應槓桿下的本金百分比
       const estimatedMargin = (amount * entryPrice) / leverage;
       pnlPct = (pnlAmt / estimatedMargin) * 100;
     }
@@ -110,6 +111,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
       leverage,
       entry: entryPrice,
       exit: status === 'Closed' ? exitPrice : undefined,
+      plannedTp: parseFloat(plannedTp) || undefined,
       sl: parseFloat(sl) || 0,
       tps: editingTrade?.tps || [],
       pnlPercentage,
@@ -172,10 +174,12 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
            <InputGroup label={t.entry} value={entry} onChange={setEntry} type="number" />
+           <InputGroup label={t.plannedTp} value={plannedTp} onChange={setPlannedTp} type="number" />
+           <InputGroup label={t.sl} value={sl} onChange={setSl} type="number" />
+           
            {status === 'Closed' && (
              <InputGroup label={t.exit} value={exit} onChange={setExit} type="number" highlight />
            )}
-           <InputGroup label={t.sl} value={sl} onChange={setSl} type="number" />
            
            <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
