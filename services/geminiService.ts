@@ -2,7 +2,6 @@ import { GoogleGenAI } from "@google/genai";
 import { Trade } from "../types";
 
 export const getAITradeFeedback = async (trade: Trade): Promise<string> => {
-  // 優先從環境變數讀取
   const apiKey = process.env.API_KEY;
   
   if (!apiKey) {
@@ -29,7 +28,7 @@ export const getAITradeFeedback = async (trade: Trade): Promise<string> => {
 
   try {
     const response = await ai.models.generateContent({
-      model: 'gemini-2.0-flash-exp', // 使用最新的穩定模型
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
         systemInstruction: "你是一位專業的交易心理教練，擅長風險管理與情緒控管。你的目標是幫助交易者保持冷靜與紀律。",
