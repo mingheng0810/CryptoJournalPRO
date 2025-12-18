@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { THEME_COLORS, TRANSLATIONS } from '../constants';
+import { TRANSLATIONS } from '../constants';
 import { Language } from '../types';
 
 interface LayoutProps {
@@ -12,40 +12,57 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang }) => {
   const t = TRANSLATIONS[lang];
+
+  /**
+   * 💡 根據您的 GitHub 截圖：
+   * 您的檔案直接上傳在最外層，且副檔名是大寫的 .JPG
+   */
+  const MH_LOGO_PATH = "./logo.JPG";
+
   return (
     <div className="min-h-screen flex flex-col bg-black text-white font-sans selection:bg-white selection:text-black transition-all duration-300">
-      <header className="border-b border-zinc-900/50 px-6 py-5 flex justify-between items-center sticky top-0 bg-black/80 backdrop-blur-xl z-50">
+      <header className="border-b border-zinc-900/50 px-6 py-4 flex justify-between items-center sticky top-0 bg-black/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-4">
-          {/* 精確復刻版 MH Logo SVG - 白色襯線體風格 */}
-          <div className="w-12 h-12 flex items-center justify-center">
-            <svg viewBox="0 0 120 120" className="w-full h-full text-white fill-current shadow-2xl">
-              {/* M - Serif Style */}
-              <path d="M15 85 L15 35 L20 35 L15 35 L15 85 M15 85 L10 85 L20 85 M15 35 L10 35 L20 35" stroke="currentColor" strokeWidth="1.5" fill="none" />
-              <path d="M15 35 L35 75 L55 35" stroke="currentColor" strokeWidth="4" fill="none" strokeLinejoin="miter" />
-              <path d="M15 35 V85 M55 35 V85" stroke="currentColor" strokeWidth="6" fill="none" />
-              {/* M Foot Serifs */}
-              <path d="M10 85 H20 M50 85 H60 M10 35 H20 M50 35 H60" stroke="currentColor" strokeWidth="2" />
-              
-              {/* H - Serif Style */}
-              <path d="M75 35 V85 M105 35 V85 M75 60 H105" stroke="currentColor" strokeWidth="6" fill="none" />
-              {/* H Foot Serifs */}
-              <path d="M70 35 H80 M100 35 H110 M70 85 H80 M100 85 H110" stroke="currentColor" strokeWidth="2" />
-              
-              {/* Elegant Swoosh - 更加動態的曲線 */}
-              <path d="M45 95 C60 75 65 55 95 20" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" className="drop-shadow-[0_0_8px_rgba(255,255,255,0.5)]" />
-            </svg>
+          {/* Logo 容器 */}
+          <div className="w-16 h-16 border border-white/20 flex items-center justify-center overflow-hidden bg-zinc-950">
+            <img 
+              src={MH_LOGO_PATH} 
+              alt="MH Logo" 
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                // 如果圖片抓不到，會顯示文字 Logo 作為備援
+                const target = e.currentTarget;
+                target.style.display = 'none';
+                const parent = target.parentElement;
+                if (parent) {
+                  parent.innerHTML = '<span class="text-white font-black text-xl tracking-tighter">MH</span>';
+                }
+              }}
+            />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm font-black tracking-[0.2em] uppercase leading-none">
-              TRADING JOURNAL <span className="text-[#00FFFF]">PRO</span>
+
+          {/* 垂直分割線 */}
+          <div className="w-[1px] h-12 bg-zinc-800 mx-2"></div>
+          
+          <div className="flex flex-col justify-center">
+            <h1 className="text-xl font-black tracking-tight uppercase leading-none">
+              MH <span className="text-[#00FFFF]">TRADING</span> JOURNAL PRO
             </h1>
-            <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.4em] mt-1.5 opacity-80">Refined by MH Design</span>
+            <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-[0.4em] mt-2 opacity-80">
+              Discipline Is Freedom
+            </span>
           </div>
+        </div>
+
+        {/* 系統狀態指示 */}
+        <div className="hidden md:flex items-center gap-2">
+           <div className="h-1.5 w-1.5 rounded-full bg-[#00FFFF] animate-pulse shadow-[0_0_8px_#00FFFF]"></div>
+           <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Protocol Active</span>
         </div>
       </header>
 
-      <main className="flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="animate-in fade-in slide-in-from-right-2 duration-300">
+      <main className="flex-1 overflow-y-auto">
+        <div className="animate-in fade-in duration-500">
           {children}
         </div>
       </main>
