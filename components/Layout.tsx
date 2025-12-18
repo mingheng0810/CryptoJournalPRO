@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { TRANSLATIONS } from '../constants';
 import { Language } from '../types';
@@ -12,14 +11,12 @@ interface LayoutProps {
 
 const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang }) => {
   const t = TRANSLATIONS[lang];
-  // 使用相對路徑嘗試解決 Logo 顯示問題
-  const MH_LOGO_PATH = "./logo.JPG";
+  const MH_LOGO_PATH = "/logo.JPG";
 
   return (
     <div className="min-h-screen flex flex-col bg-black text-white font-sans selection:bg-[#00FFFF] selection:text-black">
-      <header className="px-6 py-8 flex items-center gap-5">
-        {/* Logo Section - 增加細微邊框質感 */}
-        <div className="w-14 h-14 border border-zinc-800 flex items-center justify-center bg-zinc-950 rounded-lg overflow-hidden">
+      <header className="px-6 py-8 flex items-center gap-5 max-w-4xl mx-auto w-full">
+        <div className="w-14 h-14 border border-zinc-800 flex items-center justify-center bg-zinc-950 rounded-lg overflow-hidden shrink-0">
           <img 
             src={MH_LOGO_PATH} 
             alt="MH" 
@@ -35,25 +32,22 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, lang
           />
         </div>
 
-        {/* Vertical Divider */}
-        <div className="w-[1px] h-10 bg-zinc-800"></div>
+        <div className="w-[1px] h-10 bg-zinc-800 shrink-0"></div>
 
-        {/* Title Section */}
-        <div className="space-y-0.5">
-          <h1 className="text-lg font-black tracking-tight uppercase flex items-center gap-1.5">
+        <div className="space-y-0.5 overflow-hidden">
+          <h1 className="text-lg font-black tracking-tight uppercase flex items-center gap-1.5 whitespace-nowrap">
             MH <span className="text-[#00FFFF]">TRADING</span> JOURNAL PRO
           </h1>
-          <p className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.5em]">
+          <p className="text-[8px] text-zinc-600 font-black uppercase tracking-[0.5em] truncate">
             DISCIPLINE IS FREEDOM
           </p>
         </div>
       </header>
 
-      <main className="flex-1">
+      <main className="flex-1 overflow-x-hidden">
         {children}
       </main>
 
-      {/* Fixed Bottom Nav - 增加磨砂質感 */}
       <nav className="fixed bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl border-t border-zinc-900/50 px-8 pt-4 pb-10 z-50">
         <div className="max-w-md mx-auto flex justify-between">
           <NavButton active={activeTab === 'log'} onClick={() => setActiveTab('log')} label={t.log} icon={<svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" /></svg>} />
@@ -76,4 +70,3 @@ const NavButton: React.FC<{ active: boolean; onClick: () => void; label: string;
 );
 
 export default Layout;
-
