@@ -1,7 +1,6 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { TRANSLATIONS, REVIEW_TEMPLATE } from '../constants';
-import { Trade, TradeDirection, Account, Category, TakeProfit, Language } from '../types';
+import { Trade, TradeDirection, Account, Category, Language } from '../types';
 
 interface LogTradeProps {
   onAddTrade: (trade: Trade) => void;
@@ -16,30 +15,47 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const t = TRANSLATIONS[lang];
   
   const [accountId, setAccountId] = useState(editingTrade?.accountId || accounts[0]?.id || '');
-  const [symbol, setSymbol] = useState(editingTrade?.symbol || '');
   const [symbolSearch, setSymbolSearch] = useState(editingTrade?.symbol || '');
   const [showSymbolResults, setShowSymbolResults] = useState(false);
   const [direction, setDirection] = useState<TradeDirection>(editingTrade?.direction || 'Long');
   const [leverage, setLeverage] = useState(editingTrade?.leverage || 20);
   const [entry, setEntry] = useState(editingTrade?.entry?.toString() || '');
-  const [exit, setExit] = useState(editingTrade?.exit?.toString() || '');
   const [sl, setSl] = useState(editingTrade?.sl?.toString() || '');
-  const [timestamp, setTimestamp] = useState(editingTrade?.timestamp ? new Date(editingTrade.timestamp).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16));
-  const [strategy, setStrategy] = useState(editingTrade?.strategy || strategies[0]?.name || '');
-  const [review, setReview] = useState(editingTrade?.review || REVIEW_TEMPLATE);
-  const [snapshot, setSnapshot] = useState<string | undefined>(editingTrade?.snapshot);
   const [marginInput, setMarginInput] = useState(editingTrade?.positionSize?.toString() || '');
   const [status, setStatus] = useState<'Active' | 'Closed'>(editingTrade?.status || 'Active');
+  const [review, setReview] = useState(editingTrade?.review || REVIEW_TEMPLATE);
+  const [snapshot, setSnapshot] = useState<string | undefined>(editingTrade?.snapshot);
+  const [timestamp] = useState(editingTrade?.timestamp || new Date().toISOString());
+
+  // Calculator States
+  const [riskPercent, setRiskPercent] = useState<string>('2');
+  const [showCalculator, setShowCalculator] = useState(true);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const currentAccount = useMemo(() => accounts.find(a => a.id === accountId) || accounts[0], [accounts, accountId]);
+
+  // Calculation Logic
+  const calculations = useMemo(() => {
+    const entryPrice = parseFloat(entry);
+    const slPrice = parseFloat(sl);
+    const risk = parseFloat(riskPercent) / 100;
+    const balance = currentAccount?.initialBalance || 0;
+
+    if (!entryPrice || !slPrice || entryPrice <= 0) return { slPct: 0, riskAmt: 0, posValue: 0 };
+
+    const slPct = Math.abs(entryPrice - slPrice) / entryPrice;
+    const riskAmt = balance * risk;
+    const posValue = slPct > 0 ? riskAmt / slPct : 0;
+
+    return { slPct: slPct * 100, riskAmt, posValue };
+  }, [entry, sl, riskPercent, currentAccount]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setSnapshot(reader.result as string);
-      };
+      reader.onloadend = () => setSnapshot(reader.result as string);
       reader.readAsDataURL(file);
     }
   };
@@ -47,38 +63,26 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const entryPrice = parseFloat(entry);
-    const exitPrice = parseFloat(exit) || 0;
     const margin = parseFloat(marginInput) || 0;
     
-    let pnlPct = 0;
-    let pnlAmt = 0;
-
-    if (status === 'Closed' && entryPrice > 0 && exitPrice > 0) {
-      const diff = direction === 'Long' ? (exitPrice - entryPrice) : (entryPrice - exitPrice);
-      pnlPct = (diff / entryPrice) * leverage * 100;
-      pnlAmt = margin * (pnlPct / 100);
-    }
-
     const trade: Trade = {
       id: editingTrade?.id || Math.random().toString(36).substr(2, 9),
-      timestamp: new Date(timestamp).toISOString(),
-      symbol: symbolSearch || symbol,
+      timestamp: timestamp,
+      symbol: symbolSearch,
       direction,
       leverage,
       entry: entryPrice,
-      exit: exitPrice > 0 ? exitPrice : undefined,
       sl: parseFloat(sl),
       tps: editingTrade?.tps || [],
-      pnlPercentage: pnlPct,
-      pnlAmount: pnlAmt,
+      pnlPercentage: editingTrade?.pnlPercentage || 0,
+      pnlAmount: editingTrade?.pnlAmount || 0,
       review,
       snapshot,
-      strategy,
+      strategy: editingTrade?.strategy || strategies[0]?.name || '',
       accountId,
       positionSize: margin,
       positionUnit: 'Margin',
       status,
-      aiFeedback: editingTrade?.aiFeedback
     };
 
     onAddTrade(trade);
@@ -133,6 +137,49 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            <InputGroup label={t.sl} value={sl} onChange={setSl} type="number" />
            <InputGroup label={t.margin} value={marginInput} onChange={setMarginInput} type="number" />
         </div>
+
+        {/* Position Calculator Section */}
+        <section className="bg-zinc-950 border border-zinc-900 rounded-[2.5rem] p-8 space-y-6">
+           <div className="flex justify-between items-center">
+              <h3 className="text-[10px] font-black text-[#00FFFF] uppercase tracking-[0.3em]">{t.calculator}</h3>
+              <button type="button" onClick={() => setShowCalculator(!showCalculator)} className="text-[9px] font-black uppercase text-zinc-600 hover:text-white transition-colors">
+                {showCalculator ? 'Hide' : 'Show'}
+              </button>
+           </div>
+           
+           {showCalculator && (
+             <div className="space-y-6 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{t.riskPercent}</label>
+                      <div className="flex items-center gap-3">
+                        <input type="number" value={riskPercent} onChange={e => setRiskPercent(e.target.value)} className="w-20 bg-black border border-zinc-800 rounded-xl px-4 py-2 text-xs font-mono text-[#00FFFF] outline-none" />
+                        <span className="text-xs font-black text-zinc-700">%</span>
+                      </div>
+                   </div>
+                   <div className="space-y-2">
+                      <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{t.slPct}</label>
+                      <div className="text-xl font-black font-sans text-red-500 tracking-tighter">{calculations.slPct.toFixed(2)}%</div>
+                   </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-zinc-900">
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{t.riskAmt}</label>
+                      <div className="text-xl font-black font-sans text-white tracking-tighter">{calculations.riskAmt.toFixed(2)} <span className="text-[10px] text-zinc-600 ml-1">USDT</span></div>
+                   </div>
+                   <div className="space-y-1">
+                      <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">{t.posValue}</label>
+                      <div className="text-xl font-black font-sans text-[#00FFFF] tracking-tighter">{calculations.posValue.toLocaleString(undefined, { maximumFractionDigits: 0 })} <span className="text-[10px] text-zinc-600 ml-1">USDT</span></div>
+                   </div>
+                </div>
+                
+                <p className="text-[8px] text-zinc-700 uppercase font-black tracking-widest leading-relaxed">
+                  Recommended margin at current leverage ({leverage}x): <span className="text-white">{(calculations.posValue / leverage).toFixed(2)} USDT</span>
+                </p>
+             </div>
+           )}
+        </section>
 
         <div className="space-y-3">
            <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1 block">Trade Snapshot (Chart Analysis)</label>
