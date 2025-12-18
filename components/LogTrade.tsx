@@ -10,7 +10,7 @@ interface LogTradeProps {
   strategies: Category[];
   lang: Language;
   editingTrade?: Trade | null;
-}
+}  
 
 const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, strategies, lang, editingTrade }) => {
   const t = TRANSLATIONS[lang];
@@ -41,7 +41,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const prevExitRef = useRef(exit);
   const symbolRef = useRef<HTMLDivElement>(null);
 
-  // Auto-set Close Time when Exit Price is filled
   useEffect(() => {
     if (exit && !prevExitRef.current && !closeTimestamp) {
       setCloseTimestamp(new Date().toISOString().slice(0, 16));
@@ -169,11 +168,8 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
     onAddTrade(newTrade);
   };
 
-  const tpPreview = calculatePnl(parseFloat(newTpPrice));
-  const slPreview = calculatePnl(parseFloat(sl));
-
   return (
-    <div className="p-6 max-w-2xl mx-auto space-y-8 pb-40 animate-in fade-in zoom-in-95 duration-300">
+    <div className="px-4 py-6 max-w-2xl mx-auto space-y-8 pb-40 animate-in fade-in zoom-in-95 duration-300">
       <div className="flex justify-between items-end">
         <div>
           <h2 className="text-2xl font-black uppercase tracking-tighter">{editingTrade ? t.update : t.log}</h2>
@@ -182,14 +178,14 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         <button 
           type="button"
           onClick={() => setShowCalc(!showCalc)}
-          className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all border ${showCalc ? 'bg-[#00FFFF] text-black border-[#00FFFF]' : 'text-zinc-400 border-zinc-800 bg-[#0A0A0A]'}`}
+          className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase transition-all border ${showCalc ? 'bg-[#00FFFF] text-black border-[#00FFFF]' : 'text-zinc-400 border-zinc-800 bg-[#0A0A0A]'}`}
         >
           {t.calculator}
         </button>
       </div>
 
       {showCalc && (
-        <div className="p-6 bg-[#0A0A0A] border border-[#00FFFF]/40 rounded-3xl space-y-6 animate-in slide-in-from-top-4 shadow-2xl">
+        <div className="p-5 bg-[#0A0A0A] border border-[#00FFFF]/40 rounded-3xl space-y-6 animate-in slide-in-from-top-4 shadow-2xl">
            <div className="flex justify-between items-center mb-2">
               <span className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest">{t.calculator}</span>
               <div className="text-[10px] font-black text-zinc-600 uppercase">Equity: {activeAccount.currentBalance.toFixed(2)}</div>
@@ -203,40 +199,41 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
                     <span className="text-[#00FFFF] font-mono text-xs w-10">{riskPercent}%</span>
                  </div>
               </div>
-              <div className="p-4 bg-zinc-900/50 border border-zinc-800 rounded-2xl">
+              <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-2xl text-center">
                  <div className="text-[8px] text-zinc-500 font-black uppercase mb-1">{t.riskAmt}</div>
                  <div className="text-sm font-mono font-black text-white">{calcResults.riskAmt.toFixed(2)} u</div>
               </div>
            </div>
            
-           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+           <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
               <CalcResult label={t.slPct} value={`${calcResults.slPct.toFixed(2)}%`} color="text-red-400" />
               <CalcResult label={t.suggestedMargin} value={`${calcResults.margin.toFixed(2)}u`} color="text-[#00FFFF]" />
               <CalcResult label={t.posValue} value={`${calcResults.posValue.toFixed(1)}u`} color="text-purple-400" />
               <CalcResult label={t.suggestedLev} value={`${calcResults.sugLev.toFixed(1)}x`} color="text-gold" />
            </div>
 
-           <button type="button" onClick={() => { setMarginInput(calcResults.margin.toFixed(2)); setShowCalc(false); }} className="w-full py-4 bg-[#00FFFF] text-black rounded-xl text-[10px] font-black uppercase">
+           <button type="button" onClick={() => { setMarginInput(calcResults.margin.toFixed(2)); setShowCalc(false); }} className="w-full py-3.5 bg-[#00FFFF] text-black rounded-xl text-[10px] font-black uppercase">
              Apply Recommended Margin
            </button>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Responsive grid for Entry/Close Time */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{t.entryTime}</label>
-            <input type="datetime-local" value={timestamp} onChange={e => setTimestamp(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl px-4 py-4 text-white font-bold outline-none focus:border-[#00FFFF] transition-colors" style={{ colorScheme: 'dark' }} />
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">{t.entryTime}</label>
+            <input type="datetime-local" value={timestamp} onChange={e => setTimestamp(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl px-4 py-3 text-sm text-white font-bold outline-none focus:border-[#00FFFF] transition-colors appearance-none" style={{ colorScheme: 'dark' }} />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest">{t.closeTime}</label>
-            <input type="datetime-local" value={closeTimestamp} onChange={e => setCloseTimestamp(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#00FFFF]/30 rounded-2xl px-4 py-4 text-[#00FFFF] font-bold outline-none focus:border-[#00FFFF] transition-colors" style={{ colorScheme: 'dark' }} />
+            <label className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest px-1">{t.closeTime}</label>
+            <input type="datetime-local" value={closeTimestamp} onChange={e => setCloseTimestamp(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#00FFFF]/30 rounded-2xl px-4 py-3 text-sm text-[#00FFFF] font-bold outline-none focus:border-[#00FFFF] transition-colors appearance-none" style={{ colorScheme: 'dark' }} />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2 relative" ref={symbolRef}>
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{t.symbol}</label>
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">{t.symbol}</label>
             <div className="relative">
               <input 
                 type="text" 
@@ -244,7 +241,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
                 value={symbolSearch}
                 onChange={e => { setSymbolSearch(e.target.value); setSymbol(e.target.value); setShowSymbolResults(true); }}
                 onFocus={() => setShowSymbolResults(true)}
-                className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl px-4 py-4 font-bold outline-none focus:border-[#00FFFF] transition-colors placeholder:text-zinc-700"
+                className="w-full bg-[#0A0A0A] border border-[#1A1A1A] rounded-2xl px-4 py-3.5 font-bold outline-none focus:border-[#00FFFF] transition-colors placeholder:text-zinc-700 text-sm"
               />
               <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
                 <svg className="w-4 h-4 text-zinc-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
@@ -279,60 +276,60 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
           </div>
           
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{t.direction}</label>
+            <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">{t.direction}</label>
             <div className="flex bg-[#0A0A0A] p-1.5 rounded-2xl border border-[#1A1A1A]">
-              <button type="button" onClick={() => setDirection('Long')} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black transition-all ${direction === 'Long' ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'text-zinc-500'}`}>LONG</button>
-              <button type="button" onClick={() => setDirection('Short')} className={`flex-1 py-2.5 rounded-xl text-[10px] font-black transition-all ${direction === 'Short' ? 'bg-red-500 text-black shadow-lg shadow-red-500/20' : 'text-zinc-500'}`}>SHORT</button>
+              <button type="button" onClick={() => setDirection('Long')} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${direction === 'Long' ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' : 'text-zinc-500'}`}>LONG</button>
+              <button type="button" onClick={() => setDirection('Short')} className={`flex-1 py-2 rounded-xl text-[10px] font-black transition-all ${direction === 'Short' ? 'bg-red-500 text-black shadow-lg shadow-red-500/20' : 'text-zinc-500'}`}>SHORT</button>
             </div>
           </div>
         </div>
 
         <div className="space-y-3">
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between items-center px-1">
             <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">{t.leverage} ({leverage}x)</label>
             <div className="flex gap-2">
-               <button type="button" onClick={() => adjustLeverage(-1)} className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold flex items-center justify-center hover:bg-zinc-800 transition-all">-</button>
-               <button type="button" onClick={() => adjustLeverage(1)} className="w-10 h-10 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold flex items-center justify-center hover:bg-zinc-800 transition-all">+</button>
+               <button type="button" onClick={() => adjustLeverage(-1)} className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold flex items-center justify-center hover:bg-zinc-800 transition-all">-</button>
+               <button type="button" onClick={() => adjustLeverage(1)} className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 text-white font-bold flex items-center justify-center hover:bg-zinc-800 transition-all">+</button>
             </div>
           </div>
           <input type="range" min="1" max="150" value={leverage} onChange={e => setLeverage(parseInt(e.target.value))} className="w-full h-1.5 bg-[#1A1A1A] rounded-lg appearance-none cursor-pointer accent-[#00FFFF]" />
         </div>
 
-        <div className="p-6 bg-[#0A0A0A] border border-[#1A1A1A] rounded-3xl space-y-4 shadow-xl">
+        <div className="p-5 bg-[#0A0A0A] border border-[#1A1A1A] rounded-3xl space-y-4 shadow-xl">
            <div className="flex justify-between items-center">
               <label className="text-[10px] font-black text-zinc-500 uppercase">{t.margin}</label>
-              <div className="text-[10px] font-black text-[#00FFFF] uppercase bg-[#00FFFF]/5 px-2 py-1 rounded tracking-tight">Value: {((parseFloat(marginInput) || 0) * leverage).toFixed(2)} USDT</div>
+              <div className="text-[9px] font-black text-[#00FFFF] uppercase bg-[#00FFFF]/5 px-2 py-1 rounded tracking-tight">Value: {((parseFloat(marginInput) || 0) * leverage).toFixed(2)} USDT</div>
            </div>
-           <input type="number" step="any" placeholder="Principal (Margin)" value={marginInput} onChange={e => setMarginInput(e.target.value)} className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-5 font-mono text-white text-xl focus:border-[#00FFFF] outline-none transition-all shadow-inner" />
+           <input type="number" step="any" placeholder="Principal (Margin)" value={marginInput} onChange={e => setMarginInput(e.target.value)} className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-4 font-mono text-white text-lg focus:border-[#00FFFF] outline-none transition-all shadow-inner" />
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-zinc-500 uppercase">{t.entry}</label>
-            <input type="number" step="any" value={entry} onChange={e => setEntry(e.target.value)} className="w-full bg-[#0A0A0A] border border-zinc-800 rounded-2xl px-4 py-4 font-mono outline-none focus:border-[#00FFFF] transition-all" />
+            <label className="text-[10px] font-black text-zinc-500 uppercase px-1">{t.entry}</label>
+            <input type="number" step="any" value={entry} onChange={e => setEntry(e.target.value)} className="w-full bg-[#0A0A0A] border border-zinc-800 rounded-2xl px-4 py-3.5 font-mono outline-none focus:border-[#00FFFF] transition-all text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest">{t.exit}</label>
-            <input type="number" step="any" placeholder="Target Exit" value={exit} onChange={e => setExit(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#00FFFF]/20 rounded-2xl px-4 py-4 font-mono text-[#00FFFF] outline-none focus:border-[#00FFFF] transition-all" />
+            <label className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest px-1">{t.exit}</label>
+            <input type="number" step="any" placeholder="Target Exit" value={exit} onChange={e => setExit(e.target.value)} className="w-full bg-[#0A0A0A] border border-[#00FFFF]/20 rounded-2xl px-4 py-3.5 font-mono text-[#00FFFF] outline-none focus:border-[#00FFFF] transition-all text-sm" />
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-red-500 uppercase">{t.sl}</label>
-            <input type="number" step="any" value={sl} onChange={e => setSl(e.target.value)} className="w-full bg-[#0A0A0A] border border-red-900/30 rounded-2xl px-4 py-4 font-mono text-red-500 outline-none focus:border-red-500 transition-all" />
+            <label className="text-[10px] font-black text-red-500 uppercase px-1">{t.sl}</label>
+            <input type="number" step="any" value={sl} onChange={e => setSl(e.target.value)} className="w-full bg-[#0A0A0A] border border-red-900/30 rounded-2xl px-4 py-3.5 font-mono text-red-500 outline-none focus:border-red-500 transition-all text-sm" />
           </div>
           <div className="space-y-2">
-            <label className="text-[10px] font-black text-emerald-500 uppercase">{t.tp}</label>
+            <label className="text-[10px] font-black text-emerald-500 uppercase px-1">{t.tp}</label>
             <div className="flex gap-2">
-              <input type="number" step="any" value={newTpPrice} onChange={e => setNewTpPrice(e.target.value)} className="flex-1 bg-[#0A0A0A] border border-emerald-900/30 rounded-2xl px-4 py-4 font-mono outline-none focus:border-emerald-500 transition-all" placeholder="Target" />
-              <button type="button" onClick={addTp} className="bg-emerald-500 text-black w-12 h-14 rounded-2xl font-black flex items-center justify-center shadow-lg shadow-emerald-500/20 hover:scale-[1.05] active:scale-[0.95] transition-all">+</button>
+              <input type="number" step="any" value={newTpPrice} onChange={e => setNewTpPrice(e.target.value)} className="flex-1 bg-[#0A0A0A] border border-emerald-900/30 rounded-2xl px-4 py-3.5 font-mono outline-none focus:border-emerald-500 transition-all text-sm" placeholder="Target" />
+              <button type="button" onClick={addTp} className="bg-emerald-500 text-black w-12 h-12 rounded-2xl font-black flex items-center justify-center shadow-lg shadow-emerald-500/20 hover:scale-[1.05] active:scale-[0.95] transition-all">+</button>
             </div>
           </div>
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Snapshot (Chart)</label>
+          <label className="text-[10px] font-black text-zinc-500 uppercase tracking-widest px-1">Snapshot (Chart)</label>
           <div className="relative group">
             <input type="file" accept="image/*" onChange={handleFileChange} className="absolute inset-0 opacity-0 cursor-pointer z-10" />
             <div className="w-full h-40 bg-[#0A0A0A] border-2 border-dashed border-zinc-800 rounded-3xl flex flex-col items-center justify-center transition-all overflow-hidden bg-center bg-cover group-hover:border-[#00FFFF]/50" style={snapshot ? { backgroundImage: `url(${snapshot})` } : {}}>
@@ -343,20 +340,20 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         </div>
 
         <div className="space-y-2">
-          <label className="text-[10px] font-black text-zinc-500 uppercase">{t.review}</label>
-          <textarea rows={8} value={review} onChange={e => setReview(e.target.value)} className="w-full bg-[#0A0A0A] border border-zinc-800 rounded-2xl px-4 py-4 text-xs resize-none outline-none focus:border-[#00FFFF] font-mono leading-relaxed transition-all" />
+          <label className="text-[10px] font-black text-zinc-500 uppercase px-1">{t.review}</label>
+          <textarea rows={6} value={review} onChange={e => setReview(e.target.value)} className="w-full bg-[#0A0A0A] border border-zinc-800 rounded-2xl px-4 py-4 text-[11px] resize-none outline-none focus:border-[#00FFFF] font-mono leading-relaxed transition-all" />
         </div>
 
         {pnlPreview !== 0 && (
-          <div className="p-6 rounded-[2rem] border border-[#1A1A1A] bg-[#0A0A0A] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-2">
+          <div className="p-5 rounded-[2rem] border border-[#1A1A1A] bg-[#0A0A0A] flex justify-between items-center shadow-2xl animate-in slide-in-from-bottom-2">
             <div className="flex flex-col">
               <span className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Trade Performance</span>
-              <span className={`text-3xl font-mono font-black ${pnlPreview >= 0 ? 'text-[#00FFFF]' : 'text-red-500'}`}>
+              <span className={`text-2xl md:text-3xl font-mono font-black ${pnlPreview >= 0 ? 'text-[#00FFFF]' : 'text-red-500'}`}>
                 {pnlPreview > 0 ? '+' : ''}{pnlPreview.toFixed(2)}%
               </span>
             </div>
             <div className="flex flex-col items-end gap-2">
-              <div className={`px-6 py-2 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${pnlPreview >= 0 ? 'bg-emerald-500 text-black shadow-emerald-500/20' : 'bg-red-500 text-white shadow-red-500/20'}`}>
+              <div className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg ${pnlPreview >= 0 ? 'bg-emerald-500 text-black shadow-emerald-500/20' : 'bg-red-500 text-white shadow-red-500/20'}`}>
                 {pnlPreview >= 0 ? 'WIN' : 'LOSS'}
               </div>
               <span className="text-[10px] font-mono text-zinc-600 font-bold">{pnlAmountPreview.toFixed(2)} USDT</span>
@@ -364,7 +361,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
           </div>
         )}
 
-        <button type="submit" className="w-full py-5 bg-[#00FFFF] text-black font-black uppercase tracking-widest rounded-3xl shadow-[0_0_30px_rgba(0,255,255,0.25)] hover:scale-[0.98] active:scale-[0.95] transition-all">
+        <button type="submit" className="w-full py-4.5 bg-[#00FFFF] text-black font-black uppercase tracking-widest rounded-3xl shadow-[0_0_30px_rgba(0,255,255,0.25)] hover:scale-[0.98] active:scale-[0.95] transition-all text-sm h-14">
           {editingTrade ? t.update : t.submit}
         </button>
       </form>
@@ -373,8 +370,8 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
 };
 
 const CalcResult: React.FC<{ label: string; value: string; color: string }> = ({ label, value, color }) => (
-  <div className="p-3 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-0.5">
-     <div className="text-[7px] text-zinc-600 font-black uppercase tracking-tighter">{label}</div>
+  <div className="p-2.5 bg-zinc-900/50 border border-zinc-800 rounded-xl space-y-0.5 flex-1 flex flex-col items-center justify-center">
+     <div className="text-[7px] text-zinc-600 font-black uppercase tracking-tighter text-center">{label}</div>
      <div className={`text-xs font-mono font-black ${color}`}>{value}</div>
   </div>
 );
