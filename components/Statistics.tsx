@@ -1,5 +1,6 @@
+
 import React, { useMemo, useState } from 'react';
-import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis, Tooltip } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis, Tooltip, CartesianGrid } from 'recharts';
 import { Trade, Language, Account } from '../types';
 import { THEME_COLORS, TRANSLATIONS } from '../constants';
 
@@ -9,14 +10,28 @@ interface StatisticsProps {
   lang: Language;
 }
 
+const CustomTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-black/90 backdrop-blur-md border border-[#00FFFF]/30 p-4 rounded-xl shadow-2xl">
+        <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">{label}</p>
+        <p className="text-lg font-black font-mono text-[#00FFFF]">
+          ${payload[0].value.toFixed(2)} <span className="text-[10px] text-zinc-600 ml-1">USDT</span>
+        </p>
+      </div>
+    );
+  }
+  return null;
+};
+
 const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
   const t = TRANSLATIONS[lang];
   const [showValue, setShowValue] = useState(true);
   const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setToDate] = useState<string>('');
+  const [toDate, setFromToDate] = useState<string>('');
   const [activeQuickRange, setActiveQuickRange] = useState<string>('All');
 
-  const { stats, equityCurve, fullPeriodBalance } = useMemo(() => {
+  const { stats, equityCurve, fullPeriodBalance, startRangeDate, endRangeDate } = useMemo(() => {
     const account: Account = accounts[0];
     const initialBalance = account?.initialBalance || 0;
 
@@ -37,15 +52,17 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
     });
 
     let currentCurveBalance = initialBalance;
-    const curve = [{ date: 'Start', value: initialBalance }];
+    const curve: any[] = [];
     
-    // 如果有篩選日期，且起始日期不是第一筆交易，則需要計算起始之前的 PNL 作為 curve 的起點
+    // 計算範圍起點之前的累積餘額
     if (fromDate) {
         const priorTrades = sortedTrades.filter(t => new Date(t.timestamp).toISOString().split('T')[0] < fromDate);
         priorTrades.forEach(pt => {
             if (pt.status === 'Closed') currentCurveBalance += pt.pnlAmount;
         });
-        curve[0] = { date: 'Start Range', value: currentCurveBalance };
+        curve.push({ date: fromDate || 'Start', value: currentCurveBalance });
+    } else {
+        curve.push({ date: sortedTrades.length > 0 ? new Date(sortedTrades[0].timestamp).toLocaleDateString() : 'Start', value: initialBalance });
     }
 
     filteredTrades.forEach(trade => {
@@ -59,11 +76,16 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
     const winRate = closedTradesInRange.length > 0 
       ? (closedTradesInRange.filter(tr => tr.pnlAmount > 0).length / closedTradesInRange.length) * 100 
       : 0;
+
+    const sDate = curve[0]?.date;
+    const eDate = curve[curve.length - 1]?.date;
     
     return { 
       stats: { winRate, total: filteredTrades.length },
       equityCurve: curve,
-      fullPeriodBalance: initialBalance + totalRealizedPnl
+      fullPeriodBalance: initialBalance + totalRealizedPnl,
+      startRangeDate: sDate,
+      endRangeDate: eDate
     };
   }, [trades, accounts, fromDate, toDate]);
 
@@ -71,12 +93,12 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
     setActiveQuickRange(days === 'All' ? 'All' : days.toString());
     if (days === 'All') {
       setFromDate('');
-      setToDate('');
+      setFromToDate('');
     } else {
       const start = new Date();
       start.setDate(start.getDate() - days);
       setFromDate(start.toISOString().split('T')[0]);
-      setToDate(new Date().toISOString().split('T')[0]);
+      setFromToDate(new Date().toISOString().split('T')[0]);
     }
   };
 
@@ -119,6 +141,49 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
          ))}
       </section>
 
+      {/* 開始與結束日期標示 - 模仿 Bitget 質感 */}
+      <div className="flex justify-between px-2 -mb-8 relative z-10">
+        <div className="flex flex-col items-start gap-1">
+          <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Start Period</span>
+          <span className="text-[10px] font-mono text-zinc-500">{startRangeDate}</span>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Current Scope</span>
+          <span className="text-[10px] font-mono text-zinc-500">{endRangeDate}</span>
+        </div>
+      </div>
+
+      <section className="h-80 relative bg-[#050505] rounded-[2.5rem] border border-zinc-900/80 overflow-hidden shadow-2xl">
+         {/* 網格背景動畫質感 */}
+         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
+         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.08) 0%, transparent 100%)' }}></div>
+         
+         <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={equityCurve} margin={{ top: 60, right: 0, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
+                  <span offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
+                  <span offset="95%" stopColor="#00FFFF" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <Tooltip 
+                content={<CustomTooltip />} 
+                cursor={{ stroke: '#00FFFF', strokeWidth: 1, strokeDasharray: '5 5' }} 
+              />
+              <Area 
+                type="monotone" 
+                dataKey="value" 
+                stroke="#00FFFF" 
+                strokeWidth={3} 
+                fill="url(#chartGlow)" 
+                animationDuration={2000}
+                /* Fixed: Removed unsupported 'shadow' property from activeDot object literal */
+                activeDot={{ r: 6, fill: '#00FFFF', stroke: '#000', strokeWidth: 2 }}
+              />
+            </AreaChart>
+         </ResponsiveContainer>
+      </section>
+
       <section className="bg-zinc-900/10 border border-zinc-900/60 rounded-[2.5rem] p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
          <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-700 uppercase tracking-widest ml-1">自</label>
@@ -129,24 +194,9 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
          <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-700 uppercase tracking-widest ml-1">至</label>
             <div className="relative group">
-              <input type="date" value={toDate} onChange={e => {setToDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
+              <input type="date" value={toDate} onChange={e => {setFromToDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
             </div>
          </div>
-      </section>
-
-      <section className="h-72 relative bg-zinc-950/20 rounded-[3rem] border border-zinc-900/50 overflow-hidden">
-         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.05) 0%, transparent 100%)' }}></div>
-         <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={equityCurve} margin={{ top: 30, right: 0, left: 0, bottom: 0 }}>
-              <defs>
-                <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.25}/>
-                  <stop offset="95%" stopColor="#00FFFF" stopOpacity={0}/>
-                </linearGradient>
-              </defs>
-              <Area type="monotone" dataKey="value" stroke="#00FFFF" strokeWidth={3} fill="url(#chartGlow)" animationDuration={1500} />
-            </AreaChart>
-         </ResponsiveContainer>
       </section>
 
       <div className="grid grid-cols-2 gap-4">

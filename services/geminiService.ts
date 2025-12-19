@@ -1,15 +1,10 @@
+
 import { GoogleGenAI } from "@google/genai";
 import { Trade } from "../types";
 
 export const getAITradeFeedback = async (trade: Trade): Promise<string> => {
-  // process.env.API_KEY 會在編譯時被 Vite 替換成實際數值
-  const apiKey = process.env.API_KEY;
-  
-  if (!apiKey || apiKey === '') {
-    return "API Key 未設定。請確保啟動時輸入了 API_KEY=xxx npm run dev，或在部署平台設定了環境變數。";
-  }
-
-  const ai = new GoogleGenAI({ apiKey: apiKey });
+  /* Use direct process.env.API_KEY initialization as required by SDK guidelines */
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const prompt = `
     請分析這筆加密貨幣交易並提供心理反饋。
@@ -37,9 +32,10 @@ export const getAITradeFeedback = async (trade: Trade): Promise<string> => {
       }
     });
     
+    /* Access the .text property directly (not a method) from GenerateContentResponse */
     return response.text || "AI 反饋暫時無法生成。";
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "生成 AI 反饋時出錯，請檢查 API Key 或網路連線。";
+    return "生成 AI 反饋時出錯，請檢查網路連線或 API 金鑰權限。";
   }
 };

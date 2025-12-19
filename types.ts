@@ -1,3 +1,4 @@
+
 export type TradeDirection = 'Long' | 'Short';
 export type Language = 'zh' | 'en';
 export type TradeStatus = 'Active' | 'Closed';
@@ -17,13 +18,14 @@ export interface Trade {
   leverage: number;
   entry: number;
   exit?: number;
-  tp?: number; // 止盈價格
+  tp?: number;
   sl: number;
   tps: TakeProfit[];
   pnlPercentage: number;
   pnlAmount: number;
   review: string;
-  snapshot?: string;
+  snapshot?: string; // 舊版本相容
+  snapshots: string[]; // 新版本支援多圖
   strategy: string;
   accountId: string;
   positionSize: number;

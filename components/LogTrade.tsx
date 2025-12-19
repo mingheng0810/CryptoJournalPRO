@@ -28,7 +28,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const [posUnit, setPosUnit] = useState<'Margin' | 'Tokens'>(editingTrade?.positionUnit || 'Margin');
   const [status, setStatus] = useState<'Active' | 'Closed'>(editingTrade?.status || 'Active');
   const [review, setReview] = useState(editingTrade?.review || REVIEW_TEMPLATE);
-  const [snapshot, setSnapshot] = useState<string | undefined>(editingTrade?.snapshot);
+  const [snapshots, setSnapshots] = useState<string[]>(editingTrade?.snapshots || (editingTrade?.snapshot ? [editingTrade.snapshot] : []));
   const [strategy, setStrategy] = useState(editingTrade?.strategy || strategies[0]?.name || '');
   const [timestamp] = useState(editingTrade?.timestamp || new Date().toISOString());
 
@@ -50,7 +50,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         setPosUnit(editingTrade.positionUnit);
         setStatus(editingTrade.status);
         setReview(editingTrade.review);
-        setSnapshot(editingTrade.snapshot);
+        setSnapshots(editingTrade.snapshots || (editingTrade.snapshot ? [editingTrade.snapshot] : []));
         setStrategy(editingTrade.strategy);
         setExit(editingTrade.exit?.toString() || '');
     }
@@ -74,12 +74,20 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   }, [accounts, accountId, entry, sl, riskPercent, leverage]);
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => setSnapshot(reader.result as string);
-      reader.readAsDataURL(file);
+    const files = e.target.files;
+    if (files) {
+      Array.from(files).forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setSnapshots(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
     }
+  };
+
+  const removeSnapshot = (index: number) => {
+    setSnapshots(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -122,7 +130,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
       pnlPercentage,
       pnlAmount,
       review,
-      snapshot,
+      snapshots,
       strategy,
       accountId,
       positionSize: amount,
@@ -185,7 +193,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            </div>
         </div>
 
-        {/* 止盈止損強制並列 */}
         <div className="grid grid-cols-2 gap-6">
            <InputGroup label={t.tp} value={tp} onChange={setTp} type="number" />
            <InputGroup label={t.sl} value={sl} onChange={setSl} type="number" />
@@ -226,11 +233,45 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         </div>
 
         <div className="space-y-4">
-           <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-1 block">Execution Snapshot</label>
-           <div onClick={() => fileInputRef.current?.click()} className={`min-h-[220px] border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center transition-all cursor-pointer overflow-hidden ${snapshot ? 'border-[#00FFFF]/30 bg-[#00FFFF]/5' : 'border-zinc-900 bg-[#0A0A0A] hover:border-zinc-800'}`}>
-             {snapshot ? <img src={snapshot} className="w-full h-full object-contain max-h-[400px] p-2" alt="Snapshot" /> : <div className="text-center space-y-4 opacity-30"><div className="text-3xl">📸</div><span className="text-[10px] font-black uppercase tracking-[0.4em] block">Upload Chart Snapshot</span></div>}
-             <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
+           <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-1 block">Execution Snapshots ({snapshots.length})</label>
+           
+           {snapshots.length > 0 && (
+             <div className="grid grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+               {snapshots.map((src, i) => (
+                 <div key={i} className="relative aspect-video bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden group">
+                   <img src={src} className="w-full h-full object-cover" alt={`Snapshot ${i+1}`} />
+                   <button 
+                    type="button"
+                    onClick={() => removeSnapshot(i)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-red-500/80 text-white rounded-full flex items-center justify-center text-[10px] opacity-0 group-hover:opacity-100 transition-opacity"
+                   >×</button>
+                 </div>
+               ))}
+               <button 
+                 type="button"
+                 onClick={() => fileInputRef.current?.click()}
+                 className="aspect-video border border-dashed border-zinc-800 bg-[#0A0A0A] rounded-xl flex items-center justify-center text-zinc-600 hover:text-zinc-400 hover:border-zinc-700 transition-all"
+               >
+                 <span className="text-xl">+</span>
+               </button>
+             </div>
+           )}
+
+           <div 
+             onClick={() => fileInputRef.current?.click()} 
+             className={`min-h-[160px] border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center transition-all cursor-pointer overflow-hidden ${snapshots.length > 0 ? 'hidden' : 'border-zinc-900 bg-[#0A0A0A] hover:border-zinc-800'}`}
+           >
+             <div className="text-center space-y-4 opacity-30">
+               <div className="text-3xl">📸</div>
+               <span className="text-[10px] font-black uppercase tracking-[0.4em] block">Upload Multi Snapshots</span>
+             </div>
            </div>
+           <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" multiple />
+        </div>
+
+        <div className="space-y-4">
+            <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-1 block">心得/筆記</label>
+            <textarea value={review} onChange={e => setReview(e.target.value)} className="w-full bg-[#0A0A0A] border border-zinc-900 rounded-[2rem] px-8 py-8 text-sm text-zinc-500 min-h-[160px] focus:border-[#00FFFF]/20 outline-none leading-relaxed resize-none font-mono" />
         </div>
 
         <button type="submit" className="w-full py-8 bg-[#00FFFF] text-black rounded-[2rem] font-black text-[13px] uppercase tracking-[0.5em] shadow-[0_20px_60px_rgba(0,255,255,0.25)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-500">

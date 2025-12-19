@@ -15,7 +15,6 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
   const [loadingAI, setLoadingAI] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   
-  // 快速平倉專用狀態
   const [closingTradeId, setClosingTradeId] = useState<string | null>(null);
   const [quickExitPrice, setQuickExitPrice] = useState<string>('');
 
@@ -108,6 +107,7 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
       {sortedTrades.map(trade => {
         const isExpanded = expandedId === trade.id;
         const isClosing = closingTradeId === trade.id;
+        const displaySnapshots = trade.snapshots || (trade.snapshot ? [trade.snapshot] : []);
 
         return (
           <div 
@@ -165,9 +165,16 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                   <DataBlock label="Duration" value={calculateDuration(trade.timestamp, trade.closeTimestamp)} />
                 </div>
 
-                {trade.snapshot && (
-                   <div className="rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-black">
-                      <img src={trade.snapshot} className="w-full h-auto max-h-[400px] object-contain" alt="Snapshot" />
+                {displaySnapshots.length > 0 && (
+                   <div className="space-y-3">
+                      <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Protocol Snapshots</label>
+                      <div className="flex gap-3 overflow-x-auto pb-4 snap-x">
+                        {displaySnapshots.map((src, i) => (
+                          <div key={i} className="min-w-[280px] md:min-w-[400px] aspect-video rounded-2xl overflow-hidden border border-zinc-800 shadow-2xl bg-black snap-center">
+                            <img src={src} className="w-full h-full object-contain" alt={`Snapshot ${i+1}`} />
+                          </div>
+                        ))}
+                      </div>
                    </div>
                 )}
 

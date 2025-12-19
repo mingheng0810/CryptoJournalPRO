@@ -139,6 +139,7 @@ const Settings: React.FC<SettingsProps> = ({
 
         const isClosed = !['持倉', 'PENDING', ''].includes(statusRaw);
 
+        /* Fixed: Added missing 'snapshots' property to satisfy the Trade type definition */
         newTrades.push({
           id: Math.random().toString(36).substr(2, 9),
           timestamp: parseChineseDate(timestampRaw),
@@ -153,6 +154,7 @@ const Settings: React.FC<SettingsProps> = ({
           pnlPercentage: pnlPct,
           pnlAmount: pnlAmt,
           review: review.trim(),
+          snapshots: [],
           strategy: 'Sheet Sync',
           accountId,
           positionSize: margin,
