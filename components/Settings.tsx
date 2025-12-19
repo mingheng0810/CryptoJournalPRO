@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Account, Category, Language } from '../types';
+import { Account, Category, Language, Trade } from '../types';
 import { TRANSLATIONS } from '../constants';
 
 interface SettingsProps {
@@ -11,6 +11,7 @@ interface SettingsProps {
   setLang: (l: Language) => void;
   onAddAccount: (acc: Partial<Account>) => void;
   onUpdateAccount: (acc: Account) => void;
+  onImportTrades: (trades: Trade[]) => void;
   onAddSymbol: (name: string) => void;
   onDeleteSymbol: (id: string) => void;
   onAddStrategy: (name: string) => void;
@@ -20,7 +21,7 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ 
   accounts, symbols, strategies, lang, setLang,
-  onAddAccount, onUpdateAccount, onAddSymbol, onDeleteSymbol, onAddStrategy, onDeleteStrategy, onDeleteAccount 
+  onAddAccount, onUpdateAccount, onImportTrades, onAddSymbol, onDeleteSymbol, onAddStrategy, onDeleteStrategy, onDeleteAccount 
 }) => {
   const t = TRANSLATIONS[lang];
   const [newAccName, setNewAccName] = useState('');
@@ -29,12 +30,109 @@ const Settings: React.FC<SettingsProps> = ({
   const [newStrategyName, setNewStrategyName] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpdateBalance = (acc: Account, newBalance: string) => {
     const balance = parseFloat(newBalance);
     if (!isNaN(balance)) {
       onUpdateAccount({ ...acc, initialBalance: balance });
     }
+  };
+
+  // 解析中文日期格式：2025年11月12日 星期三 20:00:00
+  const parseChineseDate = (dateStr: string) => {
+    try {
+      if (!dateStr) return new Date().toISOString();
+      const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*(\d{2}:\d{2}:\d{2})/);
+      if (match) {
+        const [_, y, m, d, time] = match;
+        return new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${time}`).toISOString();
+      }
+      return new Date(dateStr).toISOString();
+    } catch (e) {
+      return new Date().toISOString();
+    }
+  };
+
+  const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      const lines = text.split('\n');
+      
+      const newTrades: Trade[] = [];
+      const accountId = accounts[0]?.id || 'default';
+
+      // 從第 2 行開始 (跳過標題)
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+
+        // 處理可能的引號內容 (處理 CSV 中包含逗號的文字)
+        const row: string[] = [];
+        let inQuotes = false;
+        let currentCell = '';
+        
+        for (let char of line) {
+          if (char === '"') inQuotes = !inQuotes;
+          else if (char === ',' && !inQuotes) {
+            row.push(currentCell.trim());
+            currentCell = '';
+          } else {
+            currentCell += char;
+          }
+        }
+        row.push(currentCell.trim());
+
+        if (row.length < 5) continue;
+
+        // 根據用戶提供的格式進行索引映射
+        const timestampRaw = row[0];
+        const statusRaw = row[3]; // DONE?
+        const symbol = row[4] || 'UNKNOWN';
+        const directionRaw = row[5];
+        const leverage = parseFloat(row[6]) || 1;
+        const entry = parseFloat(row[7]) || 0;
+        const margin = parseFloat(row[11]) || 0;
+        const exit = parseFloat(row[15]) || 0;
+        const pnlAmt = parseFloat(row[16]) || 0;
+        const pnlPctRaw = row[17] || '0';
+        const pnlPct = parseFloat(pnlPctRaw.replace('%', '')) || 0;
+        const review = row[21] || '';
+
+        // 狀態判定
+        const isClosed = !['持倉', 'PENDING'].includes(statusRaw?.toUpperCase());
+
+        newTrades.push({
+          id: Math.random().toString(36).substr(2, 9),
+          timestamp: parseChineseDate(timestampRaw),
+          closeTimestamp: isClosed ? parseChineseDate(row[1] || timestampRaw) : undefined,
+          symbol: symbol.trim().toUpperCase(),
+          direction: (directionRaw?.toLowerCase().includes('short') ? 'Short' : 'Long') as any,
+          leverage,
+          entry,
+          exit: isClosed ? exit : undefined,
+          sl: parseFloat(row[8]) || 0,
+          tp: undefined,
+          tps: [],
+          pnlPercentage: pnlPct,
+          pnlAmount: pnlAmt,
+          review: review || `Result: ${statusRaw}`,
+          strategy: 'Sheet Import',
+          accountId,
+          positionSize: margin,
+          positionUnit: 'Margin',
+          status: isClosed ? 'Closed' : 'Active'
+        });
+      }
+      onImportTrades(newTrades);
+      // 清空 input 讓同一個檔案可以重複觸發 onChange
+      if (csvInputRef.current) csvInputRef.current.value = '';
+    };
+    reader.readAsText(file);
   };
 
   const exportData = () => {
@@ -92,26 +190,35 @@ const Settings: React.FC<SettingsProps> = ({
         </div>
       </section>
 
-      {/* Backup Section */}
+      {/* Backup & Import Section */}
       <section className="space-y-4">
-        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 text-center">Data Protocol (資料備份)</h2>
-        <div className="grid grid-cols-2 gap-4">
+        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 text-center">Data Protocol (數據連動)</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
            <button 
              onClick={exportData}
-             className="flex flex-col items-center gap-2 p-6 bg-zinc-900/30 border border-zinc-800 rounded-3xl hover:border-[#00FFFF]/40 transition-all group"
+             className="flex flex-col items-center justify-center gap-2 p-5 bg-[#0A0A0A] border border-zinc-900 rounded-2xl hover:border-[#00FFFF]/30 transition-all group"
            >
               <span className="text-xl group-hover:scale-110 transition-transform">💾</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Backup JSON</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Backup JSON</span>
            </button>
            <button 
              onClick={() => fileInputRef.current?.click()}
-             className="flex flex-col items-center gap-2 p-6 bg-zinc-900/30 border border-zinc-800 rounded-3xl hover:border-emerald-500/40 transition-all group"
+             className="flex flex-col items-center justify-center gap-2 p-5 bg-[#0A0A0A] border border-zinc-900 rounded-2xl hover:border-emerald-500/30 transition-all group"
            >
-              <span className="text-xl group-hover:scale-110 transition-transform">📂</span>
-              <span className="text-[10px] font-black uppercase tracking-widest">Restore Data</span>
+              <span className="text-xl group-hover:scale-110 transition-transform">🔄</span>
+              <span className="text-[9px] font-black uppercase tracking-widest">Restore All</span>
               <input type="file" ref={fileInputRef} onChange={importData} className="hidden" accept=".json" />
            </button>
+           <button 
+             onClick={() => csvInputRef.current?.click()}
+             className="flex flex-col items-center justify-center gap-2 p-5 bg-[#0A0A0A] border border-[#00FFFF]/20 rounded-2xl hover:bg-[#00FFFF]/5 transition-all group"
+           >
+              <span className="text-xl group-hover:scale-110 transition-transform">📊</span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-[#00FFFF]">Import CSV</span>
+              <input type="file" ref={csvInputRef} onChange={handleCsvImport} className="hidden" accept=".csv" />
+           </button>
         </div>
+        <p className="text-[8px] text-zinc-600 text-center uppercase tracking-widest">支援您提供的 Google Sheets 專業 CSV 格式</p>
       </section>
 
       {/* Accounts Section */}

@@ -93,6 +93,30 @@ const App: React.FC = () => {
     setActiveTab('history');
   };
 
+  const handleImportTrades = (newTrades: Trade[]) => {
+    // 過濾掉重複的交易 (基於時間戳與交易對)
+    const existingKeys = new Set(trades.map(t => `${t.timestamp}-${t.symbol}`));
+    const uniqueNewTrades = newTrades.filter(t => !existingKeys.has(`${t.timestamp}-${t.symbol}`));
+    
+    if (uniqueNewTrades.length === 0) {
+      alert('未發現新交易紀錄或所有交易已存在。');
+      return;
+    }
+
+    // 更新帳戶餘額 (僅針對已平倉且有盈虧的導入交易)
+    const totalPnlToApply = uniqueNewTrades.reduce((sum, t) => t.status === 'Closed' ? sum + t.pnlAmount : sum, 0);
+    
+    setAccounts(prevAccs => prevAccs.map(acc => 
+      acc.id === (uniqueNewTrades[0].accountId || 'default')
+        ? { ...acc, currentBalance: acc.currentBalance + totalPnlToApply }
+        : acc
+    ));
+
+    setTrades(prev => [...uniqueNewTrades, ...prev]);
+    alert(`成功導入 ${uniqueNewTrades.length} 筆交易紀錄！`);
+    setActiveTab('history');
+  };
+
   const handleDeleteTrade = (id: string) => {
     if (window.confirm('確定要永久刪除此筆交易紀錄嗎？')) {
       const tradeToDelete = trades.find(t => t.id === id);
@@ -137,6 +161,7 @@ const App: React.FC = () => {
           accounts={accounts} symbols={symbols} strategies={strategies}
           lang={lang} setLang={setLang}
           onUpdateAccount={handleUpdateAccount}
+          onImportTrades={handleImportTrades}
           onAddAccount={acc => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 5), name: acc.name || '', initialBalance: acc.initialBalance || 0, currentBalance: acc.initialBalance || 0 }])}
           onDeleteAccount={id => { if(accounts.length > 1) setAccounts(prev => prev.filter(a => a.id !== id)); }}
           onAddSymbol={name => setSymbols(prev => [...prev, { id: Date.now().toString(), name: name.toUpperCase() }])}
