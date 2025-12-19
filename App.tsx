@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from './components/Layout';
 import LogTrade from './components/LogTrade';
 import TradeHistory from './components/TradeHistory';
@@ -33,25 +34,11 @@ const App: React.FC = () => {
       if (sLang) setLang(sLang as Language);
       if (sTrades) setTrades(JSON.parse(sTrades));
       
-      if (sAccs) {
-        setAccounts(JSON.parse(sAccs));
-      } else {
-        setAccounts(INITIAL_ACCOUNTS);
-      }
-
-      if (sSyms) {
-        setSymbols(JSON.parse(sSyms));
-      } else {
-        setSymbols(INITIAL_SYMBOLS.map((s, i) => ({ id: i.toString(), name: s })));
-      }
-
-      if (sStrat) {
-        setStrategies(JSON.parse(sStrat));
-      } else {
-        setStrategies(INITIAL_STRATEGIES.map((s, i) => ({ id: i.toString(), name: s })));
-      }
+      setAccounts(sAccs ? JSON.parse(sAccs) : INITIAL_ACCOUNTS);
+      setSymbols(sSyms ? JSON.parse(sSyms) : INITIAL_SYMBOLS.map((s, i) => ({ id: i.toString(), name: s })));
+      setStrategies(sStrat ? JSON.parse(sStrat) : INITIAL_STRATEGIES.map((s, i) => ({ id: i.toString(), name: s })));
     } catch (e) {
-      console.error("Failed to load data from localStorage:", e);
+      console.error("Failed to load data:", e);
       setAccounts(INITIAL_ACCOUNTS);
     }
   }, []);
@@ -62,20 +49,32 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategies)); }, [strategies]);
   useEffect(() => { localStorage.setItem(LANG_KEY, lang); }, [lang]);
 
-  const handleUpdateTrade = (updatedTrade: Trade) => {
+  // 修復 handleUpdateTrade 邏輯：將帳戶餘額更新移出 trades 狀態更新函數
+  const handleUpdateTrade = useCallback((updatedTrade: Trade) => {
     const originalTrade = trades.find(t => t.id === updatedTrade.id);
-    
-    // 如果從 Active 變成 Closed，結算資產
-    if (originalTrade && originalTrade.status === 'Active' && updatedTrade.status === 'Closed') {
-      setAccounts(accounts.map(acc => 
+    if (!originalTrade) return;
+
+    // 處理帳戶餘額變動
+    if (originalTrade.status === 'Active' && updatedTrade.status === 'Closed') {
+      setAccounts(prevAccs => prevAccs.map(acc => 
         acc.id === updatedTrade.accountId 
           ? { ...acc, currentBalance: acc.currentBalance + updatedTrade.pnlAmount } 
           : acc
       ));
+    } else if (originalTrade.status === 'Closed' && updatedTrade.status === 'Closed') {
+      const pnlDiff = updatedTrade.pnlAmount - originalTrade.pnlAmount;
+      if (pnlDiff !== 0) {
+        setAccounts(prevAccs => prevAccs.map(acc => 
+          acc.id === updatedTrade.accountId 
+            ? { ...acc, currentBalance: acc.currentBalance + pnlDiff } 
+            : acc
+        ));
+      }
     }
-    
-    setTrades(trades.map(t => t.id === updatedTrade.id ? updatedTrade : t));
-  };
+
+    // 更新交易清單
+    setTrades(prevTrades => prevTrades.map(t => t.id === updatedTrade.id ? updatedTrade : t));
+  }, [trades]);
 
   const handleAddOrUpdateTrade = (trade: Trade) => {
     const exists = trades.find(t => t.id === trade.id);
@@ -83,15 +82,14 @@ const App: React.FC = () => {
     if (exists) {
       handleUpdateTrade(trade);
     } else {
-      const updatedTrades = [trade, ...trades];
+      setTrades(prev => [trade, ...prev]);
       if (trade.status === 'Closed') {
-        setAccounts(accounts.map(acc => 
+        setAccounts(prevAccs => prevAccs.map(acc => 
           acc.id === trade.accountId 
             ? { ...acc, currentBalance: acc.currentBalance + trade.pnlAmount } 
             : acc
         ));
       }
-      setTrades(updatedTrades);
     }
     
     setEditingTrade(null);
@@ -102,52 +100,52 @@ const App: React.FC = () => {
     if (window.confirm('確定要永久刪除此筆交易紀錄嗎？')) {
       const tradeToDelete = trades.find(t => t.id === id);
       if (tradeToDelete && tradeToDelete.status === 'Closed') {
-        setAccounts(accounts.map(acc => 
+        setAccounts(prev => prev.map(acc => 
           acc.id === tradeToDelete.accountId 
             ? { ...acc, currentBalance: acc.currentBalance - tradeToDelete.pnlAmount } 
             : acc
         ));
       }
-      setTrades(trades.filter(t => t.id !== id));
+      setTrades(prev => prev.filter(t => t.id !== id));
     }
   };
 
   const handleUpdateAccount = (acc: Account) => {
-    setAccounts(accounts.map(a => a.id === acc.id ? acc : a));
-  };
-
-  const renderContent = () => {
-    switch (activeTab) {
-      case 'log':
-        return <LogTrade onAddTrade={handleAddOrUpdateTrade} accounts={accounts} symbols={symbols} strategies={strategies} lang={lang} editingTrade={editingTrade} />;
-      case 'metrics':
-        return <Statistics trades={trades} accounts={accounts} lang={lang} />;
-      case 'settings':
-        return (
-          <Settings 
-            accounts={accounts} symbols={symbols} strategies={strategies}
-            lang={lang} setLang={setLang}
-            onUpdateAccount={handleUpdateAccount}
-            onAddAccount={acc => setAccounts([...accounts, { id: Math.random().toString(36).substr(2, 5), name: acc.name || '', initialBalance: acc.initialBalance || 0, currentBalance: acc.initialBalance || 0 }])}
-            onDeleteAccount={id => { if(accounts.length > 1) setAccounts(accounts.filter(a => a.id !== id)); }}
-            onAddSymbol={name => setSymbols([...symbols, { id: Date.now().toString(), name }])}
-            onAddStrategy={name => setStrategies([...strategies, { id: Date.now().toString(), name }])}
-          />
-        );
-      case 'history':
-      default:
-        return <TradeHistory 
-          trades={trades} 
-          onUpdateTrade={handleUpdateTrade} 
-          onEditTrade={t => { setEditingTrade(t); setActiveTab('log'); }}
-          onDeleteTrade={handleDeleteTrade}
-        />;
-    }
+    setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
   };
 
   return (
     <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={lang}>
-      {renderContent()}
+      {activeTab === 'log' && (
+        <LogTrade 
+          onAddTrade={handleAddOrUpdateTrade} 
+          accounts={accounts} 
+          symbols={symbols} 
+          strategies={strategies} 
+          lang={lang} 
+          editingTrade={editingTrade} 
+        />
+      )}
+      {activeTab === 'metrics' && <Statistics trades={trades} accounts={accounts} lang={lang} />}
+      {activeTab === 'history' && (
+        <TradeHistory 
+          trades={trades} 
+          onUpdateTrade={handleUpdateTrade} 
+          onEditTrade={t => { setEditingTrade(t); setActiveTab('log'); }}
+          onDeleteTrade={handleDeleteTrade}
+        />
+      )}
+      {activeTab === 'settings' && (
+        <Settings 
+          accounts={accounts} symbols={symbols} strategies={strategies}
+          lang={lang} setLang={setLang}
+          onUpdateAccount={handleUpdateAccount}
+          onAddAccount={acc => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 5), name: acc.name || '', initialBalance: acc.initialBalance || 0, currentBalance: acc.initialBalance || 0 }])}
+          onDeleteAccount={id => { if(accounts.length > 1) setAccounts(prev => prev.filter(a => a.id !== id)); }}
+          onAddSymbol={name => setSymbols(prev => [...prev, { id: Date.now().toString(), name }])}
+          onAddStrategy={name => setStrategies(prev => [...prev, { id: Date.now().toString(), name }])}
+        />
+      )}
     </Layout>
   );
 };

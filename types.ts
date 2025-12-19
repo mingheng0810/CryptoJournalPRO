@@ -17,7 +17,7 @@ export interface Trade {
   leverage: number;
   entry: number;
   exit?: number;
-  plannedTp?: number; // 新增：開單前的預設止盈
+  tp?: number; // 止盈價格
   sl: number;
   tps: TakeProfit[];
   pnlPercentage: number;

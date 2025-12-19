@@ -1,11 +1,12 @@
+
 export const INITIAL_SYMBOLS = [
   'BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'BNBUSDT', 'ORDIUSDT', '1000SATSUSDT', 'TIAUSDT', 'SEIUSDT',
   'XRPUSDT', 'DOGEUSDT', 'ADAUSDT', 'AVAXUSDT', 'DOTUSDT', 'LINKUSDT', 'MATICUSDT',
   'XAUUSD', 'EURUSD', 'GBPUSD', 'USDJPY', 'NQ1!', 'ES1!', 'US30'
 ];
-export const INITIAL_STRATEGIES = ['ATM Model', 'Silver Bullet', 'Break & Retest', 'SMC', 'Trend Following'];
+export const INITIAL_STRATEGIES = ['ATM Model', 'Silver Bullet', 'Break & Retest', 'SMC', 'Trend Following', 'ICT Internal', 'Turtle Trading'];
 export const INITIAL_ACCOUNTS = [
-  { id: 'default', name: 'Main Account', initialBalance: 0, currentBalance: 0 }
+  { id: 'default', name: 'Main Account', initialBalance: 10000, currentBalance: 10000 }
 ];
 
 export const REVIEW_TEMPLATE = `開單原因 : 
@@ -38,15 +39,14 @@ export const TRANSLATIONS = {
     leverage: '槓桿',
     entry: '進場價',
     exit: '平倉價',
-    plannedTp: '預設止盈',
     sl: '止損',
     tp: '止盈',
-    strategy: '策略',
+    strategy: '交易策略',
     positionSize: '倉位大小',
     margin: '本金 (USDT)',
     tokens: '顆數',
     submit: '提交開倉',
-    update: '更新/關倉',
+    update: '更新協議',
     winRate: '勝率',
     totalTrades: '總交易次數',
     dailyPnl: '每日盈虧',
@@ -86,7 +86,6 @@ export const TRANSLATIONS = {
     leverage: 'Leverage',
     entry: 'Entry Price',
     exit: 'Exit Price',
-    plannedTp: 'Planned TP',
     sl: 'Stop Loss',
     tp: 'Take Profit',
     strategy: 'Strategy',
@@ -94,7 +93,7 @@ export const TRANSLATIONS = {
     margin: 'Margin (USDT)',
     tokens: 'Tokens',
     submit: 'Open Position',
-    update: 'Close/Update',
+    update: 'Update Protocol',
     winRate: 'Win Rate',
     totalTrades: 'Total Trades',
     dailyPnl: 'Daily PNL',
