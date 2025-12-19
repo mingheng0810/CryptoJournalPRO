@@ -30,7 +30,13 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const [review, setReview] = useState(editingTrade?.review || REVIEW_TEMPLATE);
   const [snapshots, setSnapshots] = useState<string[]>(editingTrade?.snapshots || (editingTrade?.snapshot ? [editingTrade.snapshot] : []));
   const [strategy, setStrategy] = useState(editingTrade?.strategy || strategies[0]?.name || '');
-  const [timestamp] = useState(editingTrade?.timestamp || new Date().toISOString());
+  
+  const toLocalISO = (iso: string) => {
+    const d = new Date(iso);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  };
+
+  const [timestamp, setTimestamp] = useState(editingTrade?.timestamp ? toLocalISO(editingTrade.timestamp) : toLocalISO(new Date().toISOString()));
 
   const [calcVisible, setCalcVisible] = useState(true);
   const [riskPercent, setRiskPercent] = useState('2');
@@ -53,6 +59,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         setSnapshots(editingTrade.snapshots || (editingTrade.snapshot ? [editingTrade.snapshot] : []));
         setStrategy(editingTrade.strategy);
         setExit(editingTrade.exit?.toString() || '');
+        setTimestamp(toLocalISO(editingTrade.timestamp));
     }
   }, [editingTrade]);
 
@@ -117,7 +124,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
 
     onAddTrade({
       id: editingTrade?.id || Math.random().toString(36).substr(2, 9),
-      timestamp,
+      timestamp: new Date(timestamp).toISOString(),
       closeTimestamp: status === 'Closed' ? (editingTrade?.closeTimestamp || new Date().toISOString()) : undefined,
       symbol: symbolSearch.toUpperCase(),
       direction,
@@ -152,6 +159,17 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            </div>
         </div>
 
+        <div className="space-y-2">
+           <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1">{t.entryTime}</label>
+           <input 
+             type="datetime-local" 
+             value={timestamp} 
+             onChange={e => setTimestamp(e.target.value)}
+             className="w-full bg-[#0A0A0A] border border-zinc-900 rounded-[1.25rem] px-6 py-5 text-sm font-black text-[#00FFFF] focus:border-[#00FFFF]/50 outline-none transition-all"
+             style={{ colorScheme: 'dark' }}
+           />
+        </div>
+
         <div className="grid grid-cols-2 gap-6">
           <div className="relative">
             <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1 mb-2 block">{t.symbol}</label>
@@ -183,7 +201,9 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            <InputGroup label={t.entry} value={entry} onChange={setEntry} type="number" />
            <div className="space-y-2.5">
               <div className="flex justify-between items-center px-1">
-                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">{t.margin}</label>
+                <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest">
+                   {posUnit === 'Margin' ? t.margin : '本金 (顆數)'}
+                </label>
                 <div className="flex bg-zinc-900 p-0.5 rounded-lg border border-zinc-800 scale-90">
                    <button type="button" onClick={() => setPosUnit('Margin')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-all ${posUnit === 'Margin' ? 'bg-[#00FFFF] text-black' : 'text-zinc-500'}`}>$</button>
                    <button type="button" onClick={() => setPosUnit('Tokens')} className={`px-2 py-0.5 rounded text-[8px] font-black transition-all ${posUnit === 'Tokens' ? 'bg-[#00FFFF] text-black' : 'text-zinc-500'}`}>🪙</button>

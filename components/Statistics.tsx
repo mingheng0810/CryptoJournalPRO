@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis, YAxis, CartesianGrid } from 'recharts';
 import { Trade, Language, Account } from '../types';
 import { TRANSLATIONS } from '../constants';
 
@@ -54,6 +54,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
     let currentCurveBalance = initialBalance;
     const curve: any[] = [];
     
+    // 初始化起點 (Start Point)
     if (fromDate) {
         const priorTrades = sortedTrades.filter(t => new Date(t.timestamp).toISOString().split('T')[0] < fromDate);
         priorTrades.forEach(pt => {
@@ -61,7 +62,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
         });
         curve.push({ date: fromDate, value: currentCurveBalance });
     } else {
-        curve.push({ date: sortedTrades.length > 0 ? new Date(sortedTrades[0].timestamp).toLocaleDateString() : 'Start', value: initialBalance });
+        curve.push({ date: 'START', value: initialBalance });
     }
 
     filteredTrades.forEach(trade => {
@@ -70,6 +71,11 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
         curve.push({ date: new Date(trade.timestamp).toLocaleDateString(), value: currentCurveBalance });
       }
     });
+
+    // 如果只有一個點，增加一個微小的位移點讓圖表能畫出網格與軸線
+    if (curve.length === 1) {
+      curve.push({ date: 'END', value: curve[0].value });
+    }
 
     const closedTradesInRange = filteredTrades.filter(t => t.status === 'Closed');
     const winRate = closedTradesInRange.length > 0 
@@ -149,22 +155,42 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
       </div>
 
       <section className="h-80 relative bg-[#050505] rounded-[2.5rem] border border-zinc-900/80 overflow-hidden shadow-2xl">
-         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
-         <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.08) 0%, transparent 100%)' }}></div>
-         
          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={equityCurve} margin={{ top: 60, right: 0, left: 0, bottom: 0 }}>
+            <AreaChart data={equityCurve} margin={{ top: 80, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
+                  <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.4}/>
                   <stop offset="95%" stopColor="#00FFFF" stopOpacity={0}/>
                 </linearGradient>
               </defs>
+              
+              {/* 貫穿全框的灰色虛線網格 */}
+              <CartesianGrid 
+                strokeDasharray="3 3" 
+                stroke="#1A1A1A" 
+                vertical={true} 
+                horizontal={true}
+              />
+
+              {/* X軸: 鎖定左右貼齊 */}
+              {/* Fix: removed boundaryGap as it is not a valid prop for XAxis in recharts */}
+              <XAxis 
+                dataKey="date" 
+                hide 
+              />
+
+              {/* Y軸: 鎖定數據最小值在底端 */}
+              <YAxis 
+                hide 
+                domain={['dataMin', 'auto']}
+              />
+
               <Tooltip 
                 content={<CustomTooltip />} 
                 cursor={{ stroke: '#00FFFF', strokeWidth: 1, strokeDasharray: '5 5' }} 
                 isAnimationActive={false}
               />
+
               <Area 
                 type="monotone" 
                 dataKey="value" 
@@ -172,7 +198,14 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
                 strokeWidth={3} 
                 fill="url(#chartGlow)" 
                 animationDuration={1500}
-                activeDot={{ r: 6, fill: '#00FFFF', stroke: '#000', strokeWidth: 2 }}
+                activeDot={{ 
+                  r: 6, 
+                  fill: '#00FFFF', 
+                  stroke: '#000', 
+                  strokeWidth: 2,
+                  className: "filter drop-shadow-[0_0_8px_rgba(0,255,255,0.8)]"
+                }}
+                connectNulls
               />
             </AreaChart>
          </ResponsiveContainer>

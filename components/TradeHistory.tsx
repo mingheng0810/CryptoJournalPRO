@@ -2,7 +2,6 @@
 import React, { useState, useMemo } from 'react';
 import { Trade } from '../types';
 import { TRANSLATIONS } from '../constants';
-import { getAITradeFeedback } from '../services/geminiService';
 
 interface TradeHistoryProps {
   trades: Trade[];
@@ -12,11 +11,16 @@ interface TradeHistoryProps {
 }
 
 const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEditTrade, onDeleteTrade }) => {
-  const [loadingAI, setLoadingAI] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  
   const [closingTradeId, setClosingTradeId] = useState<string | null>(null);
   const [quickExitPrice, setQuickExitPrice] = useState<string>('');
+  
+  const toLocalISO = (iso: string) => {
+    const d = new Date(iso);
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+  };
+
+  const [quickExitTime, setQuickExitTime] = useState<string>(toLocalISO(new Date().toISOString()));
 
   const calculateDuration = (start: string, end?: string) => {
     if (!end) return '---';
@@ -51,7 +55,7 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
       ...trade,
       status: 'Closed',
       exit: exitPrice,
-      closeTimestamp: new Date().toISOString(),
+      closeTimestamp: new Date(quickExitTime).toISOString(),
       pnlPercentage,
       pnlAmount
     };
@@ -81,14 +85,6 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
     }
     return { pnlPercentage, pnlAmount };
   }, [closingTradeId, quickExitPrice, trades]);
-
-  const handleAIFeedback = async (trade: Trade) => {
-    if (trade.aiFeedback) return;
-    setLoadingAI(trade.id);
-    const feedback = await getAITradeFeedback(trade);
-    onUpdateTrade({ ...trade, aiFeedback: feedback });
-    setLoadingAI(null);
-  };
 
   const sortedTrades = [...trades].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
@@ -185,19 +181,15 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                    </div>
                 </div>
 
-                {trade.aiFeedback && (
-                  <div className="p-4 bg-[#00FFFF]/5 border border-[#00FFFF]/10 rounded-2xl space-y-1.5">
-                    <div className="flex items-center gap-1.5 text-[9px] font-black text-[#00FFFF] uppercase">
-                      <span className="text-xs">✨</span> Psychological Reflection
-                    </div>
-                    <p className="text-[11px] text-zinc-400 leading-relaxed italic">"{trade.aiFeedback}"</p>
-                  </div>
-                )}
-
                 <div className="flex flex-col gap-3 pt-2">
                   {trade.status === 'Active' && !isClosing && (
                     <button 
-                      onClick={(e) => { e.stopPropagation(); setClosingTradeId(trade.id); setQuickExitPrice(trade.entry.toString()); }}
+                      onClick={(e) => { 
+                        e.stopPropagation(); 
+                        setClosingTradeId(trade.id); 
+                        setQuickExitPrice(trade.entry.toString()); 
+                        setQuickExitTime(toLocalISO(new Date().toISOString()));
+                      }}
                       className="w-full py-4 bg-[#00FFFF] text-black rounded-xl text-[12px] font-[900] uppercase tracking-widest shadow-[0_10px_30px_rgba(0,255,255,0.2)] hover:scale-[1.02] active:scale-[0.98] transition-all"
                     >
                       Quick Close Position ⚡️
@@ -205,9 +197,9 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                   )}
 
                   {isClosing && (
-                    <div className="p-5 bg-zinc-950 border border-[#00FFFF]/30 rounded-2xl space-y-4 animate-in zoom-in-95">
-                       <div className="flex justify-between items-center">
-                          <label className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest">Execute Settlement Price</label>
+                    <div className="p-5 bg-zinc-950 border border-[#00FFFF]/30 rounded-2xl space-y-5 animate-in zoom-in-95">
+                       <div className="flex justify-between items-center border-b border-zinc-900 pb-2">
+                          <label className="text-[10px] font-black text-[#00FFFF] uppercase tracking-widest">Settlement Terminal</label>
                           {pnlPreview && (
                             <div className="text-right">
                                <span className={`text-[10px] font-black font-mono ${pnlPreview.pnlAmount >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
@@ -216,25 +208,43 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                             </div>
                           )}
                        </div>
-                       <input 
-                         autoFocus
-                         type="number" 
-                         step="any"
-                         value={quickExitPrice} 
-                         onChange={(e) => setQuickExitPrice(e.target.value)}
-                         className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-lg font-mono text-white outline-none focus:border-[#00FFFF]"
-                         placeholder="Enter Exit Price..."
-                       />
-                       <div className="flex gap-2">
+                       
+                       <div className="space-y-4">
+                         <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest ml-1">Exit Price</label>
+                            <input 
+                              autoFocus
+                              type="number" 
+                              step="any"
+                              value={quickExitPrice} 
+                              onChange={(e) => setQuickExitPrice(e.target.value)}
+                              className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-lg font-mono text-white outline-none focus:border-[#00FFFF] transition-all"
+                              placeholder="Price..."
+                            />
+                         </div>
+
+                         <div className="space-y-1.5">
+                            <label className="text-[9px] font-black text-zinc-600 uppercase tracking-widest ml-1">Settlement Time</label>
+                            <input 
+                              type="datetime-local" 
+                              value={quickExitTime} 
+                              onChange={(e) => setQuickExitTime(e.target.value)}
+                              className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 text-sm font-mono text-[#00FFFF] outline-none focus:border-[#00FFFF] transition-all"
+                              style={{ colorScheme: 'dark' }}
+                            />
+                         </div>
+                       </div>
+
+                       <div className="flex gap-2 pt-2">
                           <button 
-                            onClick={() => handleConfirmQuickClose(trade)}
-                            className="flex-[2] py-3 bg-[#00FFFF] text-black rounded-xl text-[10px] font-black uppercase tracking-widest"
+                            onClick={(e) => { e.stopPropagation(); handleConfirmQuickClose(trade); }}
+                            className="flex-[2] py-4 bg-[#00FFFF] text-black rounded-xl text-[10px] font-black uppercase tracking-widest shadow-[0_10px_20px_rgba(0,255,255,0.2)]"
                           >
-                            Confirm Settlement
+                            Execute Close
                           </button>
                           <button 
-                            onClick={() => setClosingTradeId(null)}
-                            className="flex-1 py-3 bg-zinc-900 text-zinc-500 rounded-xl text-[10px] font-black uppercase tracking-widest"
+                            onClick={(e) => { e.stopPropagation(); setClosingTradeId(null); }}
+                            className="flex-1 py-4 bg-zinc-900 text-zinc-500 rounded-xl text-[10px] font-black uppercase tracking-widest"
                           >
                             Cancel
                           </button>
@@ -244,20 +254,13 @@ const TradeHistory: React.FC<TradeHistoryProps> = ({ trades, onUpdateTrade, onEd
                   
                   <div className="flex flex-wrap gap-2">
                     <button 
-                      onClick={() => onEditTrade(trade)} 
+                      onClick={(e) => { e.stopPropagation(); onEditTrade(trade); }} 
                       className="flex-1 min-w-[100px] py-3 bg-[#1A1A1A] text-zinc-400 rounded-xl text-[10px] font-black uppercase hover:bg-[#00FFFF]/10 hover:text-[#00FFFF] transition-all border border-transparent hover:border-[#00FFFF]/20"
                     >
                       Edit Detail
                     </button>
                     <button 
-                      onClick={() => handleAIFeedback(trade)}
-                      disabled={loadingAI === trade.id || !!trade.aiFeedback}
-                      className="flex-1 min-w-[100px] py-3 bg-[#1A1A1A] text-zinc-400 rounded-xl text-[10px] font-black uppercase disabled:opacity-50 transition-all hover:bg-zinc-800"
-                    >
-                      {loadingAI === trade.id ? 'Analyzing...' : trade.aiFeedback ? 'Reviewed' : 'AI Analysis'}
-                    </button>
-                    <button 
-                      onClick={() => onDeleteTrade(trade.id)}
+                      onClick={(e) => { e.stopPropagation(); onDeleteTrade(trade.id); }}
                       className="px-4 py-3 bg-red-950/20 text-red-500/50 rounded-xl text-[10px] font-black uppercase hover:bg-red-500 hover:text-white transition-all border border-red-900/20"
                     >
                       Delete
