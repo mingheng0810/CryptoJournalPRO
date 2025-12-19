@@ -70,7 +70,10 @@ export const TRANSLATIONS = {
     customRange: '自定義區間',
     estPnl: '預期盈虧',
     initialBalance: '初始本金',
-    searchSymbol: '搜尋或輸入交易對...'
+    searchSymbol: '搜尋或輸入交易對...',
+    pullToRefresh: '下拉重新載入協議',
+    releaseToRefresh: '放開以執行同步',
+    refreshing: '數據協議同步中...'
   },
   en: {
     log: 'Open',
@@ -117,6 +120,9 @@ export const TRANSLATIONS = {
     customRange: 'Custom',
     estPnl: 'Est. PNL',
     initialBalance: 'Initial Balance',
-    searchSymbol: 'Search or enter symbol...'
+    searchSymbol: 'Search or enter symbol...',
+    pullToRefresh: 'Pull to reload protocol',
+    releaseToRefresh: 'Release to sync',
+    refreshing: 'Syncing Protocol...'
   }
 };

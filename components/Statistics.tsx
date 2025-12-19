@@ -1,8 +1,8 @@
 
 import React, { useMemo, useState } from 'react';
-import { AreaChart, Area, ResponsiveContainer, YAxis, XAxis, Tooltip, CartesianGrid } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, Tooltip, XAxis } from 'recharts';
 import { Trade, Language, Account } from '../types';
-import { THEME_COLORS, TRANSLATIONS } from '../constants';
+import { TRANSLATIONS } from '../constants';
 
 interface StatisticsProps {
   trades: Trade[];
@@ -13,7 +13,7 @@ interface StatisticsProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-black/90 backdrop-blur-md border border-[#00FFFF]/30 p-4 rounded-xl shadow-2xl">
+      <div className="bg-black/90 backdrop-blur-md border border-[#00FFFF]/30 p-4 rounded-xl shadow-2xl animate-in zoom-in-95 duration-200">
         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-1">{label}</p>
         <p className="text-lg font-black font-mono text-[#00FFFF]">
           ${payload[0].value.toFixed(2)} <span className="text-[10px] text-zinc-600 ml-1">USDT</span>
@@ -28,7 +28,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
   const t = TRANSLATIONS[lang];
   const [showValue, setShowValue] = useState(true);
   const [fromDate, setFromDate] = useState<string>('');
-  const [toDate, setFromToDate] = useState<string>('');
+  const [toDate, setToDate] = useState<string>('');
   const [activeQuickRange, setActiveQuickRange] = useState<string>('All');
 
   const { stats, equityCurve, fullPeriodBalance, startRangeDate, endRangeDate } = useMemo(() => {
@@ -54,13 +54,12 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
     let currentCurveBalance = initialBalance;
     const curve: any[] = [];
     
-    // 計算範圍起點之前的累積餘額
     if (fromDate) {
         const priorTrades = sortedTrades.filter(t => new Date(t.timestamp).toISOString().split('T')[0] < fromDate);
         priorTrades.forEach(pt => {
             if (pt.status === 'Closed') currentCurveBalance += pt.pnlAmount;
         });
-        curve.push({ date: fromDate || 'Start', value: currentCurveBalance });
+        curve.push({ date: fromDate, value: currentCurveBalance });
     } else {
         curve.push({ date: sortedTrades.length > 0 ? new Date(sortedTrades[0].timestamp).toLocaleDateString() : 'Start', value: initialBalance });
     }
@@ -77,15 +76,12 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
       ? (closedTradesInRange.filter(tr => tr.pnlAmount > 0).length / closedTradesInRange.length) * 100 
       : 0;
 
-    const sDate = curve[0]?.date;
-    const eDate = curve[curve.length - 1]?.date;
-    
     return { 
       stats: { winRate, total: filteredTrades.length },
       equityCurve: curve,
       fullPeriodBalance: initialBalance + totalRealizedPnl,
-      startRangeDate: sDate,
-      endRangeDate: eDate
+      startRangeDate: curve[0]?.date || '---',
+      endRangeDate: curve[curve.length - 1]?.date || '---'
     };
   }, [trades, accounts, fromDate, toDate]);
 
@@ -93,12 +89,12 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
     setActiveQuickRange(days === 'All' ? 'All' : days.toString());
     if (days === 'All') {
       setFromDate('');
-      setFromToDate('');
+      setToDate('');
     } else {
       const start = new Date();
       start.setDate(start.getDate() - days);
       setFromDate(start.toISOString().split('T')[0]);
-      setFromToDate(new Date().toISOString().split('T')[0]);
+      setToDate(new Date().toISOString().split('T')[0]);
     }
   };
 
@@ -141,8 +137,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
          ))}
       </section>
 
-      {/* 開始與結束日期標示 - 模仿 Bitget 質感 */}
-      <div className="flex justify-between px-2 -mb-8 relative z-10">
+      <div className="flex justify-between px-2 -mb-8 relative z-10 pointer-events-none">
         <div className="flex flex-col items-start gap-1">
           <span className="text-[9px] font-black text-zinc-700 uppercase tracking-widest">Start Period</span>
           <span className="text-[10px] font-mono text-zinc-500">{startRangeDate}</span>
@@ -154,7 +149,6 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
       </div>
 
       <section className="h-80 relative bg-[#050505] rounded-[2.5rem] border border-zinc-900/80 overflow-hidden shadow-2xl">
-         {/* 網格背景動畫質感 */}
          <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'linear-gradient(to right, #ffffff 1px, transparent 1px), linear-gradient(to bottom, #ffffff 1px, transparent 1px)', backgroundSize: '40px 40px' }}></div>
          <div className="absolute inset-0 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 50% 0%, rgba(0, 255, 255, 0.08) 0%, transparent 100%)' }}></div>
          
@@ -162,13 +156,14 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
             <AreaChart data={equityCurve} margin={{ top: 60, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                  <span offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
-                  <span offset="95%" stopColor="#00FFFF" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#00FFFF" stopOpacity={0.3}/>
+                  <stop offset="95%" stopColor="#00FFFF" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               <Tooltip 
                 content={<CustomTooltip />} 
                 cursor={{ stroke: '#00FFFF', strokeWidth: 1, strokeDasharray: '5 5' }} 
+                isAnimationActive={false}
               />
               <Area 
                 type="monotone" 
@@ -176,8 +171,7 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
                 stroke="#00FFFF" 
                 strokeWidth={3} 
                 fill="url(#chartGlow)" 
-                animationDuration={2000}
-                /* Fixed: Removed unsupported 'shadow' property from activeDot object literal */
+                animationDuration={1500}
                 activeDot={{ r: 6, fill: '#00FFFF', stroke: '#000', strokeWidth: 2 }}
               />
             </AreaChart>
@@ -187,15 +181,11 @@ const Statistics: React.FC<StatisticsProps> = ({ trades, accounts, lang }) => {
       <section className="bg-zinc-900/10 border border-zinc-900/60 rounded-[2.5rem] p-8 grid grid-cols-1 md:grid-cols-2 gap-6">
          <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-700 uppercase tracking-widest ml-1">自</label>
-            <div className="relative group">
-              <input type="date" value={fromDate} onChange={e => {setFromDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
-            </div>
+            <input type="date" value={fromDate} onChange={e => {setFromDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
          </div>
          <div className="space-y-2">
             <label className="text-[10px] font-black text-zinc-700 uppercase tracking-widest ml-1">至</label>
-            <div className="relative group">
-              <input type="date" value={toDate} onChange={e => {setFromToDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
-            </div>
+            <input type="date" value={toDate} onChange={e => {setToDate(e.target.value); setActiveQuickRange('Custom');}} className="w-full bg-black border border-zinc-800 rounded-2xl px-6 py-4 text-xs font-mono text-white outline-none focus:border-[#00FFFF]/30 transition-all appearance-none" style={{ colorScheme: 'dark' }} />
          </div>
       </section>
 
