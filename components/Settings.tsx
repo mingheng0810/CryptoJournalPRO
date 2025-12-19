@@ -1,5 +1,6 @@
+
 import React, { useState, useRef } from 'react';
-import { Account, Category, Language, Trade } from '../types';
+import { Account, Category, Language } from '../types';
 import { TRANSLATIONS } from '../constants';
 
 interface SettingsProps {
@@ -11,17 +12,22 @@ interface SettingsProps {
   onAddAccount: (acc: Partial<Account>) => void;
   onUpdateAccount: (acc: Account) => void;
   onAddSymbol: (name: string) => void;
+  onDeleteSymbol: (id: string) => void;
   onAddStrategy: (name: string) => void;
+  onDeleteStrategy: (id: string) => void;
   onDeleteAccount: (id: string) => void;
 }
 
 const Settings: React.FC<SettingsProps> = ({ 
   accounts, symbols, strategies, lang, setLang,
-  onAddAccount, onUpdateAccount, onAddSymbol, onAddStrategy, onDeleteAccount 
+  onAddAccount, onUpdateAccount, onAddSymbol, onDeleteSymbol, onAddStrategy, onDeleteStrategy, onDeleteAccount 
 }) => {
   const t = TRANSLATIONS[lang];
   const [newAccName, setNewAccName] = useState('');
   const [newAccBalance, setNewAccBalance] = useState('');
+  const [newSymbolName, setNewSymbolName] = useState('');
+  const [newStrategyName, setNewStrategyName] = useState('');
+  
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleUpdateBalance = (acc: Account, newBalance: string) => {
@@ -145,6 +151,68 @@ const Settings: React.FC<SettingsProps> = ({
                 <button onClick={() => { if(newAccName && newAccBalance) { onAddAccount({ name: newAccName, initialBalance: parseFloat(newAccBalance) }); setNewAccName(''); setNewAccBalance(''); } }} className="bg-white text-black px-8 rounded-2xl font-black text-[10px] uppercase">ADD</button>
              </div>
           </div>
+        </div>
+      </section>
+
+      {/* Symbols Management */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 text-center">Symbol Protocol (交易對)</h2>
+        <div className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-[2rem] p-6 space-y-4 shadow-2xl">
+           <div className="flex gap-2">
+              <input 
+                placeholder="Ex: ARB/USDT" 
+                value={newSymbolName} 
+                onChange={e => setNewSymbolName(e.target.value)} 
+                className="flex-1 bg-black border border-zinc-800 rounded-xl px-5 py-3 text-xs focus:border-[#00FFFF] outline-none" 
+              />
+              <button 
+                onClick={() => { if(newSymbolName) { onAddSymbol(newSymbolName); setNewSymbolName(''); } }}
+                className="bg-[#00FFFF] text-black px-6 rounded-xl font-black text-[10px] uppercase"
+              >
+                ADD
+              </button>
+           </div>
+           <div className="flex flex-wrap gap-2 pt-2">
+              {symbols.map(s => (
+                <div key={s.id} className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg">
+                  <span className="text-[10px] font-black font-mono tracking-tighter">{s.name}</span>
+                  <button onClick={() => onDeleteSymbol(s.id)} className="text-zinc-600 hover:text-red-500">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              ))}
+           </div>
+        </div>
+      </section>
+
+      {/* Strategy Management */}
+      <section className="space-y-4">
+        <h2 className="text-xs font-black uppercase tracking-widest text-zinc-500 text-center">Strategy Protocol (交易策略)</h2>
+        <div className="bg-[#0A0A0A] border border-[#1A1A1A] rounded-[2rem] p-6 space-y-4 shadow-2xl">
+           <div className="flex gap-2">
+              <input 
+                placeholder="Ex: Liquidity Sweep" 
+                value={newStrategyName} 
+                onChange={e => setNewStrategyName(e.target.value)} 
+                className="flex-1 bg-black border border-zinc-800 rounded-xl px-5 py-3 text-xs focus:border-[#00FFFF] outline-none" 
+              />
+              <button 
+                onClick={() => { if(newStrategyName) { onAddStrategy(newStrategyName); setNewStrategyName(''); } }}
+                className="bg-[#00FFFF] text-black px-6 rounded-xl font-black text-[10px] uppercase"
+              >
+                ADD
+              </button>
+           </div>
+           <div className="flex flex-wrap gap-2 pt-2">
+              {strategies.map(s => (
+                <div key={s.id} className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg">
+                  <span className="text-[10px] font-black uppercase tracking-widest opacity-80">{s.name}</span>
+                  <button onClick={() => onDeleteStrategy(s.id)} className="text-zinc-600 hover:text-red-500">
+                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+              ))}
+           </div>
         </div>
       </section>
     </div>

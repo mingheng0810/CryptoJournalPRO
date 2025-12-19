@@ -150,7 +150,12 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <div className="relative">
             <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1 mb-2 block">{t.symbol}</label>
-            <input value={symbolSearch} onChange={(e) => {setSymbolSearch(e.target.value); setShowSymbolResults(true);}} placeholder={t.searchSymbol} className="w-full bg-zinc-950 border border-zinc-900 rounded-2xl px-6 py-5 text-sm font-black focus:border-[#00FFFF]/50 outline-none transition-all" />
+            <input 
+              value={symbolSearch} 
+              onChange={(e) => {setSymbolSearch(e.target.value); setShowSymbolResults(true);}} 
+              placeholder={t.searchSymbol} 
+              className="w-full bg-zinc-950 border border-zinc-900 rounded-2xl px-6 py-5 text-sm font-black focus:border-[#00FFFF]/50 outline-none transition-all" 
+            />
             {showSymbolResults && symbolSearch && (
               <div className="absolute z-50 w-full mt-3 bg-zinc-950 border border-zinc-900 rounded-2xl shadow-2xl max-h-56 overflow-y-auto">
                 {filteredSymbols.map(s => (
@@ -161,9 +166,16 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
           </div>
           <div>
             <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1 mb-2 block">{t.strategy}</label>
-            <select value={strategy} onChange={(e) => setStrategy(e.target.value)} className="w-full bg-zinc-950 border border-zinc-900 rounded-2xl px-6 py-5 text-sm font-black focus:border-[#00FFFF]/50 outline-none appearance-none cursor-pointer">
-              {strategies.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-            </select>
+            <input 
+              list="strategy-list"
+              value={strategy} 
+              onChange={(e) => setStrategy(e.target.value)} 
+              placeholder="Select or Type..."
+              className="w-full bg-zinc-950 border border-zinc-900 rounded-2xl px-6 py-5 text-sm font-black focus:border-[#00FFFF]/50 outline-none transition-all"
+            />
+            <datalist id="strategy-list">
+              {strategies.map(s => <option key={s.id} value={s.name} />)}
+            </datalist>
           </div>
         </div>
 

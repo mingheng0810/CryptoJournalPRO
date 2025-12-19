@@ -49,12 +49,10 @@ const App: React.FC = () => {
   useEffect(() => { localStorage.setItem(STRATEGIES_KEY, JSON.stringify(strategies)); }, [strategies]);
   useEffect(() => { localStorage.setItem(LANG_KEY, lang); }, [lang]);
 
-  // 修復 handleUpdateTrade 邏輯：將帳戶餘額更新移出 trades 狀態更新函數
   const handleUpdateTrade = useCallback((updatedTrade: Trade) => {
     const originalTrade = trades.find(t => t.id === updatedTrade.id);
     if (!originalTrade) return;
 
-    // 處理帳戶餘額變動
     if (originalTrade.status === 'Active' && updatedTrade.status === 'Closed') {
       setAccounts(prevAccs => prevAccs.map(acc => 
         acc.id === updatedTrade.accountId 
@@ -72,7 +70,6 @@ const App: React.FC = () => {
       }
     }
 
-    // 更新交易清單
     setTrades(prevTrades => prevTrades.map(t => t.id === updatedTrade.id ? updatedTrade : t));
   }, [trades]);
 
@@ -142,8 +139,10 @@ const App: React.FC = () => {
           onUpdateAccount={handleUpdateAccount}
           onAddAccount={acc => setAccounts(prev => [...prev, { id: Math.random().toString(36).substr(2, 5), name: acc.name || '', initialBalance: acc.initialBalance || 0, currentBalance: acc.initialBalance || 0 }])}
           onDeleteAccount={id => { if(accounts.length > 1) setAccounts(prev => prev.filter(a => a.id !== id)); }}
-          onAddSymbol={name => setSymbols(prev => [...prev, { id: Date.now().toString(), name }])}
+          onAddSymbol={name => setSymbols(prev => [...prev, { id: Date.now().toString(), name: name.toUpperCase() }])}
+          onDeleteSymbol={id => setSymbols(prev => prev.filter(s => s.id !== id))}
           onAddStrategy={name => setStrategies(prev => [...prev, { id: Date.now().toString(), name }])}
+          onDeleteStrategy={id => setStrategies(prev => prev.filter(s => s.id !== id))}
         />
       )}
     </Layout>
