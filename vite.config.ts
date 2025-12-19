@@ -44,7 +44,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    chunkSizeWarningLimit: 2000, // 提高上限至 2MB，消除日誌警告
+    chunkSizeWarningLimit: 3000, // 設為 3MB 徹底消除警告
     rollupOptions: {
       output: {
         manualChunks: {

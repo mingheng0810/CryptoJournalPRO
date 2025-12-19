@@ -136,7 +136,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   return (
     <div className="p-6 max-w-2xl mx-auto pb-48 animate-in fade-in slide-in-from-bottom-4 duration-1000">
       <form onSubmit={handleSubmit} className="space-y-10">
-        {/* 標題與 Active/Closed 切換 */}
         <div className="flex justify-between items-center px-1">
            <h2 className="text-[10px] font-black uppercase tracking-[0.4em] text-zinc-600">Protocol Initiation</h2>
            <div className="flex bg-[#0A0A0A] p-1 rounded-2xl border border-zinc-900 shadow-2xl">
@@ -145,16 +144,10 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            </div>
         </div>
 
-        {/* 交易對 & 交易策略 */}
         <div className="grid grid-cols-2 gap-6">
           <div className="relative">
             <label className="text-[10px] font-black text-zinc-600 uppercase tracking-widest ml-1 mb-2 block">{t.symbol}</label>
-            <input 
-              value={symbolSearch} 
-              onChange={(e) => {setSymbolSearch(e.target.value); setShowSymbolResults(true);}} 
-              placeholder={t.searchSymbol} 
-              className="w-full bg-[#0A0A0A] border border-zinc-900 rounded-[1.25rem] px-6 py-5 text-sm font-black focus:border-[#00FFFF]/50 outline-none transition-all placeholder:text-zinc-800" 
-            />
+            <input value={symbolSearch} onChange={(e) => {setSymbolSearch(e.target.value); setShowSymbolResults(true);}} placeholder={t.searchSymbol} className="w-full bg-[#0A0A0A] border border-zinc-900 rounded-[1.25rem] px-6 py-5 text-sm font-black focus:border-[#00FFFF]/50 outline-none transition-all placeholder:text-zinc-800" />
             {showSymbolResults && symbolSearch && (
               <div className="absolute z-50 w-full mt-3 bg-[#0A0A0A] border border-zinc-800 rounded-2xl shadow-2xl max-h-56 overflow-y-auto">
                 {filteredSymbols.map(s => <div key={s.id} onClick={() => { setSymbolSearch(s.name); setShowSymbolResults(false); }} className="px-6 py-4 hover:bg-[#111] cursor-pointer text-xs font-bold border-b border-zinc-900/50">{s.name}</div>)}
@@ -167,7 +160,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
           </div>
         </div>
 
-        {/* LONG/SHORT 方向 & 槓桿 */}
         <div className="grid grid-cols-2 gap-10 items-center">
           <div className="flex bg-[#0A0A0A] p-1.5 rounded-[1.5rem] border border-zinc-900 shadow-xl">
             <button type="button" onClick={() => setDirection('Long')} className={`flex-1 py-5 rounded-[1.25rem] text-[11px] font-black uppercase transition-all duration-300 ${direction === 'Long' ? 'bg-[#10B981] text-black shadow-[0_0_25px_rgba(16,185,129,0.3)]' : 'text-zinc-700'}`}>Long</button>
@@ -179,7 +171,6 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
           </div>
         </div>
 
-        {/* 進場價 & 本金 */}
         <div className="grid grid-cols-2 gap-6">
            <InputGroup label={t.entry} value={entry} onChange={setEntry} type="number" />
            <div className="space-y-2.5">
@@ -194,13 +185,12 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            </div>
         </div>
 
-        {/* 止盈 & 止損 (完全並列排版) */}
+        {/* 止盈止損強制並列 */}
         <div className="grid grid-cols-2 gap-6">
            <InputGroup label={t.tp} value={tp} onChange={setTp} type="number" />
            <InputGroup label={t.sl} value={sl} onChange={setSl} type="number" />
         </div>
 
-        {/* 倉位計算機 */}
         <div className="bg-[#0A0A0A] border border-zinc-900 rounded-[2rem] p-8 space-y-8 shadow-2xl relative overflow-hidden">
            <div className="flex justify-between items-center">
               <h3 className="flex items-center gap-2 text-[10px] font-black text-[#00FFFF] uppercase tracking-widest">⚡️ {t.calculator}</h3>
@@ -235,19 +225,12 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
            )}
         </div>
 
-        {/* 截圖上傳 */}
         <div className="space-y-4">
            <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-1 block">Execution Snapshot</label>
            <div onClick={() => fileInputRef.current?.click()} className={`min-h-[220px] border-2 border-dashed rounded-[2.5rem] flex flex-col items-center justify-center transition-all cursor-pointer overflow-hidden ${snapshot ? 'border-[#00FFFF]/30 bg-[#00FFFF]/5' : 'border-zinc-900 bg-[#0A0A0A] hover:border-zinc-800'}`}>
              {snapshot ? <img src={snapshot} className="w-full h-full object-contain max-h-[400px] p-2" alt="Snapshot" /> : <div className="text-center space-y-4 opacity-30"><div className="text-3xl">📸</div><span className="text-[10px] font-black uppercase tracking-[0.4em] block">Upload Chart Snapshot</span></div>}
              <input type="file" ref={fileInputRef} onChange={handleImageUpload} className="hidden" accept="image/*" />
            </div>
-        </div>
-
-        {/* 筆記 */}
-        <div className="space-y-4">
-            <label className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.2em] ml-1 block">心得/筆記</label>
-            <textarea value={review} onChange={e => setReview(e.target.value)} className="w-full bg-[#0A0A0A] border border-zinc-900 rounded-[2rem] px-8 py-8 text-sm text-zinc-500 min-h-[160px] focus:border-[#00FFFF]/20 outline-none leading-relaxed resize-none font-mono" />
         </div>
 
         <button type="submit" className="w-full py-8 bg-[#00FFFF] text-black rounded-[2rem] font-black text-[13px] uppercase tracking-[0.5em] shadow-[0_20px_60px_rgba(0,255,255,0.25)] hover:scale-[1.01] active:scale-[0.98] transition-all duration-500">
