@@ -39,16 +39,17 @@ const Settings: React.FC<SettingsProps> = ({
     }
   };
 
-  // 解析中文日期格式：2025年11月12日 星期三 20:00:00
+  // 進階日期解析：支援 "2025年11月12日 星期三 20:00:00" 以及可能的額外空格
   const parseChineseDate = (dateStr: string) => {
+    if (!dateStr || dateStr.trim() === '') return new Date().toISOString();
     try {
-      if (!dateStr) return new Date().toISOString();
       const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*(\d{2}:\d{2}:\d{2})/);
       if (match) {
         const [_, y, m, d, time] = match;
         return new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${time}`).toISOString();
       }
-      return new Date(dateStr).toISOString();
+      const parsed = new Date(dateStr);
+      return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
     } catch (e) {
       return new Date().toISOString();
     }
@@ -60,38 +61,38 @@ const Settings: React.FC<SettingsProps> = ({
 
     const reader = new FileReader();
     reader.onload = (event) => {
-      const text = event.target?.result as string;
-      const lines = text.split('\n');
+      const csvContent = event.target?.result as string;
       
+      // 使用更強大的正則表達式來拆分 CSV 每一行，確保引號內的換行不會打斷解析
+      const rows_matches = csvContent.split(/\r?\n/);
       const newTrades: Trade[] = [];
       const accountId = accounts[0]?.id || 'default';
 
       // 從第 2 行開始 (跳過標題)
-      for (let i = 1; i < lines.length; i++) {
-        const line = lines[i].trim();
+      for (let i = 1; i < rows_matches.length; i++) {
+        const line = rows_matches[i].trim();
         if (!line) continue;
 
-        // 處理可能的引號內容 (處理 CSV 中包含逗號的文字)
+        // 正確處理 CSV 中的引號與逗號內容
         const row: string[] = [];
-        let inQuotes = false;
-        let currentCell = '';
-        
+        let curCell = '';
+        let inQuote = false;
         for (let char of line) {
-          if (char === '"') inQuotes = !inQuotes;
-          else if (char === ',' && !inQuotes) {
-            row.push(currentCell.trim());
-            currentCell = '';
+          if (char === '"') inQuote = !inQuote;
+          else if (char === ',' && !inQuote) {
+            row.push(curCell.trim());
+            curCell = '';
           } else {
-            currentCell += char;
+            curCell += char;
           }
         }
-        row.push(currentCell.trim());
+        row.push(curCell.trim());
 
-        if (row.length < 5) continue;
+        // 確保基本資料存在 (針對用戶提供的資料結構)
+        if (row.length < 10) continue;
 
-        // 根據用戶提供的格式進行索引映射
-        const timestampRaw = row[0];
-        const statusRaw = row[3]; // DONE?
+        const timestampRaw = row[0] || row[1]; // 如果沒有開始時間，用結束時間
+        const statusRaw = row[3]; // DONE? (止損, 止盈, 先跑, 撞套, etc)
         const symbol = row[4] || 'UNKNOWN';
         const directionRaw = row[5];
         const leverage = parseFloat(row[6]) || 1;
@@ -99,12 +100,11 @@ const Settings: React.FC<SettingsProps> = ({
         const margin = parseFloat(row[11]) || 0;
         const exit = parseFloat(row[15]) || 0;
         const pnlAmt = parseFloat(row[16]) || 0;
-        const pnlPctRaw = row[17] || '0';
-        const pnlPct = parseFloat(pnlPctRaw.replace('%', '')) || 0;
+        const pnlPct = parseFloat((row[17] || '0').replace('%', '')) || 0;
         const review = row[21] || '';
 
-        // 狀態判定
-        const isClosed = !['持倉', 'PENDING'].includes(statusRaw?.toUpperCase());
+        // 狀態判定：如果沒有狀態或狀態是"持倉"，則設為 Active
+        const isClosed = !['持倉', 'PENDING', ''].includes(statusRaw);
 
         newTrades.push({
           id: Math.random().toString(36).substr(2, 9),
@@ -116,11 +116,10 @@ const Settings: React.FC<SettingsProps> = ({
           entry,
           exit: isClosed ? exit : undefined,
           sl: parseFloat(row[8]) || 0,
-          tp: undefined,
           tps: [],
           pnlPercentage: pnlPct,
           pnlAmount: pnlAmt,
-          review: review || `Result: ${statusRaw}`,
+          review: review.replace(/^"|"$/g, '').trim(), // 移除引號
           strategy: 'Sheet Import',
           accountId,
           positionSize: margin,
@@ -128,8 +127,8 @@ const Settings: React.FC<SettingsProps> = ({
           status: isClosed ? 'Closed' : 'Active'
         });
       }
+      
       onImportTrades(newTrades);
-      // 清空 input 讓同一個檔案可以重複觸發 onChange
       if (csvInputRef.current) csvInputRef.current.value = '';
     };
     reader.readAsText(file);
@@ -218,7 +217,7 @@ const Settings: React.FC<SettingsProps> = ({
               <input type="file" ref={csvInputRef} onChange={handleCsvImport} className="hidden" accept=".csv" />
            </button>
         </div>
-        <p className="text-[8px] text-zinc-600 text-center uppercase tracking-widest">支援您提供的 Google Sheets 專業 CSV 格式</p>
+        <p className="text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">支援 Google Sheets 匯出的 CSV 格式<br/>(自動解析中文日期與盈虧數據)</p>
       </section>
 
       {/* Accounts Section */}
@@ -312,7 +311,7 @@ const Settings: React.FC<SettingsProps> = ({
            </div>
            <div className="flex flex-wrap gap-2 pt-2">
               {strategies.map(s => (
-                <div key={s.id} className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg">
+                <div key={s.id} className="flex items-center gap-2 bg-zinc-900 border border-zinc-900 px-3 py-1.5 rounded-lg">
                   <span className="text-[10px] font-black uppercase tracking-widest opacity-80">{s.name}</span>
                   <button onClick={() => onDeleteStrategy(s.id)} className="text-zinc-600 hover:text-red-500">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>

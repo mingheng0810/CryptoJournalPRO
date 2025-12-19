@@ -1,3 +1,4 @@
+
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -42,6 +43,17 @@ export default defineConfig({
     'process.env.API_KEY': JSON.stringify(process.env.API_KEY || '')
   },
   build: {
-    sourcemap: false
+    sourcemap: false,
+    chunkSizeWarningLimit: 1000, // 提高警告上限至 1MB
+    rollupOptions: {
+      output: {
+        // 將大型套件分開打包，解決 Chunk 過大問題
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom'],
+          'vendor-charts': ['recharts'],
+          'vendor-ai': ['@google/genai']
+        }
+      }
+    }
   }
 });
