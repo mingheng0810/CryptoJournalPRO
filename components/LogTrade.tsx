@@ -24,7 +24,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
   const [exit, setExit] = useState(editingTrade?.exit?.toString() || '');
   const [tp, setTp] = useState(editingTrade?.tp?.toString() || '');
   const [sl, setSl] = useState(editingTrade?.sl?.toString() || '');
-  const [posInput, setPosInput] = useState(editingTrade?.positionSize?.toString() || '');
+  const [posInput, setPosInput] = useState(editingTrade?.positionSize?.toString() || '0');
   const [posUnit, setPosUnit] = useState<'Margin' | 'Tokens'>(editingTrade?.positionUnit || 'Margin');
   const [status, setStatus] = useState<'Active' | 'Closed'>(editingTrade?.status || 'Active');
   const [review, setReview] = useState(editingTrade?.review || REVIEW_TEMPLATE);
@@ -38,7 +38,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
 
   const [timestamp, setTimestamp] = useState(editingTrade?.timestamp ? toLocalISO(editingTrade.timestamp) : toLocalISO(new Date().toISOString()));
 
-  const [calcVisible, setCalcVisible] = useState(true);
+  const [calcVisible, setCalcVisible] = useState(false);
   const [riskPercent, setRiskPercent] = useState('2');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
