@@ -44,7 +44,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    chunkSizeWarningLimit: 1500, // 提高上限至 1.5MB，消除 Vercel Logs 中的黃色警告
+    chunkSizeWarningLimit: 5000,
     rollupOptions: {
       output: {
         manualChunks: {
