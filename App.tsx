@@ -149,12 +149,20 @@ const App: React.FC = () => {
     setAccounts(prev => prev.map(a => a.id === acc.id ? acc : a));
   };
 
+  // 當使用者手動點擊導覽列切換到 log 時，視為「全新開倉」，清空編輯狀態
+  const handleNavTabChange = (tab: string) => {
+    if (tab === 'log') {
+      setEditingTrade(null);
+    }
+    setActiveTab(tab);
+  };
+
   if (!isAuthorized) {
     return <AuthGate onAuthorized={handleAuthorized} />;
   }
 
   return (
-    <Layout activeTab={activeTab} setActiveTab={setActiveTab} lang={lang}>
+    <Layout activeTab={activeTab} setActiveTab={handleNavTabChange} lang={lang}>
       <PullToRefresh onRefresh={handleRefresh} lang={lang}>
         {activeTab === 'log' && (
           <LogTrade 

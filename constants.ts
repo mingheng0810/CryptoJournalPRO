@@ -6,7 +6,7 @@ export const INITIAL_SYMBOLS = [
 ];
 export const INITIAL_STRATEGIES = ['ATM Model', 'Silver Bullet', 'Break & Retest', 'SMC', 'Trend Following', 'ICT Internal', 'Turtle Trading'];
 export const INITIAL_ACCOUNTS = [
-  { id: 'default', name: 'Main Account', initialBalance: 10000, currentBalance: 10000 }
+  { id: 'default', name: 'Main Account', initialBalance: 0, currentBalance: 0 }
 ];
 
 export const REVIEW_TEMPLATE = `開單原因 : 

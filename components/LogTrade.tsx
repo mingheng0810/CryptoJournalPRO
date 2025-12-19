@@ -60,6 +60,10 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
         setStrategy(editingTrade.strategy);
         setExit(editingTrade.exit?.toString() || '');
         setTimestamp(toLocalISO(editingTrade.timestamp));
+    } else {
+        // 當非編輯模式時，確保重置為預設值
+        setPosInput('0');
+        setCalcVisible(false);
     }
   }, [editingTrade]);
 
@@ -260,6 +264,7 @@ const LogTrade: React.FC<LogTradeProps> = ({ onAddTrade, accounts, symbols, stra
                {snapshots.map((src, i) => (
                  <div key={i} className="relative aspect-video bg-zinc-950 border border-zinc-800 rounded-xl overflow-hidden group">
                    <img src={src} className="w-full h-full object-cover" alt={`Snapshot ${i+1}`} />
+                   {/* Fix: use correctly named index variable 'i' from the map function */}
                    <button 
                     type="button"
                     onClick={() => removeSnapshot(i)}
