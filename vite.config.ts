@@ -44,10 +44,9 @@ export default defineConfig({
   },
   build: {
     sourcemap: false,
-    chunkSizeWarningLimit: 1000, // 提高警告上限至 1MB
+    chunkSizeWarningLimit: 2000, // 提高上限至 2MB，消除日誌警告
     rollupOptions: {
       output: {
-        // 將大型套件分開打包，解決 Chunk 過大問題
         manualChunks: {
           'vendor-react': ['react', 'react-dom'],
           'vendor-charts': ['recharts'],

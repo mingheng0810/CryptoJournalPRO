@@ -23,6 +23,7 @@ const App: React.FC = () => {
   const [strategies, setStrategies] = useState<Category[]>([]);
   const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
 
+  // 初始載入資料
   useEffect(() => {
     try {
       const sTrades = localStorage.getItem(TRADES_KEY);
@@ -43,6 +44,7 @@ const App: React.FC = () => {
     }
   }, []);
 
+  // 資料持久化存儲
   useEffect(() => { localStorage.setItem(TRADES_KEY, JSON.stringify(trades)); }, [trades]);
   useEffect(() => { localStorage.setItem(ACCOUNTS_KEY, JSON.stringify(accounts)); }, [accounts]);
   useEffect(() => { localStorage.setItem(SYMBOLS_KEY, JSON.stringify(symbols)); }, [symbols]);
@@ -94,7 +96,6 @@ const App: React.FC = () => {
   };
 
   const handleImportTrades = (newTrades: Trade[]) => {
-    // 過濾掉重複的交易 (基於時間戳與交易對)
     const existingKeys = new Set(trades.map(t => `${t.timestamp}-${t.symbol}`));
     const uniqueNewTrades = newTrades.filter(t => !existingKeys.has(`${t.timestamp}-${t.symbol}`));
     
@@ -103,7 +104,6 @@ const App: React.FC = () => {
       return;
     }
 
-    // 更新帳戶餘額 (僅針對已平倉且有盈虧的導入交易)
     const totalPnlToApply = uniqueNewTrades.reduce((sum, t) => t.status === 'Closed' ? sum + t.pnlAmount : sum, 0);
     
     setAccounts(prevAccs => prevAccs.map(acc => 

@@ -39,20 +39,66 @@ const Settings: React.FC<SettingsProps> = ({
     }
   };
 
-  // 進階日期解析：支援 "2025年11月12日 星期三 20:00:00" 以及可能的額外空格
+  // 進階日期解析：解析 "2025年11月12日 星期三 20:00:00"
   const parseChineseDate = (dateStr: string) => {
     if (!dateStr || dateStr.trim() === '') return new Date().toISOString();
     try {
-      const match = dateStr.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*(\d{2}:\d{2}:\d{2})/);
+      const cleaned = dateStr.trim();
+      const match = cleaned.match(/(\d{4})年(\d{1,2})月(\d{1,2})日.*(\d{1,2}:\d{2}:\d{2})/);
       if (match) {
         const [_, y, m, d, time] = match;
         return new Date(`${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}T${time}`).toISOString();
       }
-      const parsed = new Date(dateStr);
+      const parsed = new Date(cleaned);
       return isNaN(parsed.getTime()) ? new Date().toISOString() : parsed.toISOString();
     } catch (e) {
       return new Date().toISOString();
     }
+  };
+
+  // 專業級 CSV 狀態機解析器 (處理包含換行與引號的儲存格)
+  const parseCSV = (text: string) => {
+    const result: string[][] = [];
+    let row: string[] = [];
+    let cell = '';
+    let inQuotes = false;
+    
+    for (let i = 0; i < text.length; i++) {
+      const char = text[i];
+      const nextChar = text[i + 1];
+
+      if (inQuotes) {
+        if (char === '"' && nextChar === '"') {
+          cell += '"'; i++; // 轉義引號
+        } else if (char === '"') {
+          inQuotes = false;
+        } else {
+          cell += char;
+        }
+      } else {
+        if (char === '"') {
+          inQuotes = true;
+        } else if (char === ',') {
+          row.push(cell.trim());
+          cell = '';
+        } else if (char === '\n' || char === '\r') {
+          if (cell !== '' || row.length > 0) {
+            row.push(cell.trim());
+            result.push(row);
+            row = [];
+            cell = '';
+          }
+          if (char === '\r' && nextChar === '\n') i++; // 跳過 \r\n
+        } else {
+          cell += char;
+        }
+      }
+    }
+    if (cell !== '' || row.length > 0) {
+      row.push(cell.trim());
+      result.push(row);
+    }
+    return result;
   };
 
   const handleCsvImport = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,37 +108,19 @@ const Settings: React.FC<SettingsProps> = ({
     const reader = new FileReader();
     reader.onload = (event) => {
       const csvContent = event.target?.result as string;
+      const rows = parseCSV(csvContent);
       
-      // 使用更強大的正則表達式來拆分 CSV 每一行，確保引號內的換行不會打斷解析
-      const rows_matches = csvContent.split(/\r?\n/);
       const newTrades: Trade[] = [];
       const accountId = accounts[0]?.id || 'default';
+      let lastAvailableBalance = 0;
 
       // 從第 2 行開始 (跳過標題)
-      for (let i = 1; i < rows_matches.length; i++) {
-        const line = rows_matches[i].trim();
-        if (!line) continue;
+      for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 10) continue;
 
-        // 正確處理 CSV 中的引號與逗號內容
-        const row: string[] = [];
-        let curCell = '';
-        let inQuote = false;
-        for (let char of line) {
-          if (char === '"') inQuote = !inQuote;
-          else if (char === ',' && !inQuote) {
-            row.push(curCell.trim());
-            curCell = '';
-          } else {
-            curCell += char;
-          }
-        }
-        row.push(curCell.trim());
-
-        // 確保基本資料存在 (針對用戶提供的資料結構)
-        if (row.length < 10) continue;
-
-        const timestampRaw = row[0] || row[1]; // 如果沒有開始時間，用結束時間
-        const statusRaw = row[3]; // DONE? (止損, 止盈, 先跑, 撞套, etc)
+        const timestampRaw = row[0];
+        const statusRaw = row[3]; // DONE?
         const symbol = row[4] || 'UNKNOWN';
         const directionRaw = row[5];
         const leverage = parseFloat(row[6]) || 1;
@@ -101,9 +129,14 @@ const Settings: React.FC<SettingsProps> = ({
         const exit = parseFloat(row[15]) || 0;
         const pnlAmt = parseFloat(row[16]) || 0;
         const pnlPct = parseFloat((row[17] || '0').replace('%', '')) || 0;
+        const endingBalance = parseFloat(row[19]) || 0; // 結束可用餘額
         const review = row[21] || '';
 
-        // 狀態判定：如果沒有狀態或狀態是"持倉"，則設為 Active
+        // 更新最後看到的餘額 (同步 Sheet 與 App)
+        if (!isNaN(endingBalance) && endingBalance > 0) {
+          lastAvailableBalance = endingBalance;
+        }
+
         const isClosed = !['持倉', 'PENDING', ''].includes(statusRaw);
 
         newTrades.push({
@@ -119,13 +152,18 @@ const Settings: React.FC<SettingsProps> = ({
           tps: [],
           pnlPercentage: pnlPct,
           pnlAmount: pnlAmt,
-          review: review.replace(/^"|"$/g, '').trim(), // 移除引號
-          strategy: 'Sheet Import',
+          review: review.trim(),
+          strategy: 'Sheet Sync',
           accountId,
           positionSize: margin,
           positionUnit: 'Margin',
           status: isClosed ? 'Closed' : 'Active'
         });
+      }
+      
+      // 自動同步餘額邏輯：將當前帳戶餘額更新為 Sheet 中的最後餘額
+      if (lastAvailableBalance > 0) {
+        onUpdateAccount({ ...accounts[0], currentBalance: lastAvailableBalance });
       }
       
       onImportTrades(newTrades);
@@ -217,7 +255,7 @@ const Settings: React.FC<SettingsProps> = ({
               <input type="file" ref={csvInputRef} onChange={handleCsvImport} className="hidden" accept=".csv" />
            </button>
         </div>
-        <p className="text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">支援 Google Sheets 匯出的 CSV 格式<br/>(自動解析中文日期與盈虧數據)</p>
+        <p className="text-[8px] text-zinc-600 text-center uppercase tracking-widest leading-relaxed">支援您的 Google Sheets 專業 CSV 格式<br/>(自動同步帳戶餘額與中文日期數據)</p>
       </section>
 
       {/* Accounts Section */}
@@ -311,7 +349,7 @@ const Settings: React.FC<SettingsProps> = ({
            </div>
            <div className="flex flex-wrap gap-2 pt-2">
               {strategies.map(s => (
-                <div key={s.id} className="flex items-center gap-2 bg-zinc-900 border border-zinc-900 px-3 py-1.5 rounded-lg">
+                <div key={s.id} className="flex items-center gap-2 bg-zinc-900 border border-zinc-800 px-3 py-1.5 rounded-lg">
                   <span className="text-[10px] font-black uppercase tracking-widest opacity-80">{s.name}</span>
                   <button onClick={() => onDeleteStrategy(s.id)} className="text-zinc-600 hover:text-red-500">
                     <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" /></svg>
